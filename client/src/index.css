@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+
+body { font-family: 'Inter', system-ui, sans-serif; }
+/* Scrollbar for Webkit (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+  width: 10px;       /* width of vertical scrollbar */
+  height: 10px;      /* height of horizontal scrollbar */
+}
+
+::-webkit-scrollbar-track {
+  background: #1f1f1f;   /* track background */
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #4ade80;   /* thumb color (emerald green) */
+  border-radius: 10px;
+  border: 2px solid #1f1f1f; /* padding around thumb */
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #22c55e;   /* hover color */
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;           /* "auto" or "thin" */
+  scrollbar-color: #4ade80 #1f1f1f; /* thumb track */
+}
