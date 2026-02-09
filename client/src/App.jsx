@@ -1,3 +1,5 @@
+// src/App.jsx
+import { AuthProvider } from './context/AuthContext';
 import { BrowserRouter, Routes, Route, Outlet } from 'react-router-dom';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
@@ -5,6 +7,11 @@ import AnimePage from './pages/AnimeSection';
 import MangaPage from './pages/MangaSection';
 import ShowsPage from './pages/ShowsSection';
 import BooksPage from './pages/BooksSection';
+import Login from './components/auth/Login';
+import Register from './components/auth/Register';
+import FavoritesPage from './pages/FavoritesPage';
+import WatchedPage from './pages/WatchedPage';
+import ProfilePage from './pages/ProfilePage';
 
 function Layout() {
   return (
@@ -13,7 +20,7 @@ function Layout() {
       <div className="flex">
         <Sidebar />
         <main className="flex-1 ml-72 pt-24 pb-16 px-6 md:px-12 max-w-screen-2xl mx-auto">
-          <Outlet />           {/* ← Pages render here */}
+          <Outlet />
         </main>
       </div>
     </div>
@@ -22,19 +29,26 @@ function Layout() {
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route element={<Layout />}>
-          <Route index element={<AnimePage />} />           {/* default home = anime */}
-          <Route path="/anime" element={<AnimePage />} />
-          <Route path="/manga" element={<MangaPage />} />
-          <Route path="/shows" element={<ShowsPage />} />
-          <Route path="/books" element={<BooksPage />} />
-          {/* Optional: 404 */}
-          <Route path="*" element={<div className="text-center py-40 text-2xl">404 - Page not found</div>} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/profile" element={<ProfilePage />} />
+
+          <Route element={<Layout />}>
+            <Route index element={<AnimePage />} />
+            <Route path="/anime" element={<AnimePage />} />
+            <Route path="/manga" element={<MangaPage />} />
+            <Route path="/shows" element={<ShowsPage />} />
+            <Route path="/books" element={<BooksPage />} />
+            <Route path="/favorites" element={<FavoritesPage />} />
+            <Route path="/watched" element={<WatchedPage />} />
+            <Route path="*" element={<div className="text-center py-40 text-2xl">404</div>} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   );
 }
 

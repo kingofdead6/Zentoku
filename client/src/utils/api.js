@@ -76,16 +76,20 @@ export const fetchManga = async (page = 1, search = '') => {
 export const fetchShows = async (page = 0) => {
   const res = await fetch(`https://api.tvmaze.com/shows?page=${page}`);
   const data = await res.json();
-  return data.slice(0, 100).map(s => ({
-    id: s.id,
-    title: s.name,
-    image: s.image?.medium || 'https://via.placeholder.com/300x400?text=No+Image',
-    year: s.premiered ? new Date(s.premiered).getFullYear() : null,
-    count: s.runtime || null,
-    genres: s.genres || [],
-    type: 'show',
-    description: s.summary ? s.summary.replace(/<[^>]+>/g, '') : '', // clean HTML
-  }));
+
+  return data
+    .map(s => ({
+      id: s.id,
+      title: s.name,
+      image: s.image?.medium || 'https://via.placeholder.com/300x400?text=No+Image',
+      year: s.premiered ? new Date(s.premiered).getFullYear() : null,
+      count: s.runtime || null,
+      genres: s.genres || [],
+      score: s.rating?.average ?? 0, // 🔴 IMPORTANT: default to 0
+      type: 'show',
+      description: s.summary ? s.summary.replace(/<[^>]+>/g, '') : '',
+    }))
+    .sort((a, b) => b.score - a.score); // ✅ ALWAYS ordered by rating
 };
 
 /* =========================

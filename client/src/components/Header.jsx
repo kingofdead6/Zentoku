@@ -16,15 +16,7 @@ export default function Header({ onGlobalSearch }) {
           <span className="text-2xl font-bold tracking-tighter text-white">AnimeHub</span>
         </div>
 
-        <form onSubmit={handleSubmit} className="w-96">
-          <input
-            type="text"
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-            placeholder="Search across everything..."
-            className="w-full bg-zinc-900 border border-zinc-700 rounded-2xl px-6 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-violet-500"
-          />
-        </form>
+ 
 
         <div className="flex items-center gap-6 text-zinc-400">
           <button className="hover:text-white transition">Login</button>

@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { fetchAnime } from '../utils/api';
 import Card from '../components/Card';
-import FilterPanel from '../components/FilterPanel';
 import Loading from '../components/Loading';
 
 export default function AnimePage() {

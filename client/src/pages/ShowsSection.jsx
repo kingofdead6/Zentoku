@@ -7,37 +7,51 @@ import Loading from '../components/Loading';
 export default function ShowsPage() {
   const [media, setMedia] = useState([]);
   const [filtered, setFiltered] = useState([]);
-  const [page, setPage] = useState(0); // TVMaze pages start at 0
+  const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [search, setSearch] = useState('');
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fetch shows when page or search changes
   useEffect(() => {
     async function loadShows() {
       try {
         setLoading(true);
         let items = [];
+
         if (search) {
-          // TVMaze search endpoint
+          // Search endpoint
           const res = await fetch(
             `https://api.tvmaze.com/search/shows?q=${encodeURIComponent(search)}`
           );
           const data = await res.json();
-          items = data.map(d => ({
-            id: d.show.id,
-            title: d.show.name,
-            image: d.show.image?.medium || 'https://via.placeholder.com/300x400?text=No+Image',
-            year: d.show.premiered ? new Date(d.show.premiered).getFullYear() : null,
-            count: d.show.runtime || null,
-            genres: d.show.genres || [],
-            type: 'show',
-          }));
-          setHasMore(false); // search returns all results at once
+
+          items = data
+            .map(d => {
+              const show = d.show;
+              return {
+                id: show.id,
+                title: show.name,
+                image: show.image?.medium || 'https://via.placeholder.com/300x400?text=No+Image',
+                year: show.premiered ? new Date(show.premiered).getFullYear() : null,
+                count: show.runtime || null,
+                genres: show.genres || [],
+                type: 'show',
+                score: show.rating?.average || null,
+                description: show.summary
+                  ? show.summary.replace(/<[^>]+>/g, '')
+                  : '',
+              };
+            })
+            .filter(item => item.score !== null)           // optional: remove unrated shows
+            .sort((a, b) => (b.score || 0) - (a.score || 0)); // descending by rating
+
+          setHasMore(false);
         } else {
+          // Paginated shows
           const data = await fetchShows(page);
+
           items = data;
           setHasMore(data.length > 0);
         }
@@ -56,7 +70,7 @@ export default function ShowsPage() {
   }, [page, search]);
 
   const handleSearch = () => {
-    setPage(0); // reset pagination
+    setPage(0);
     setSearch(input);
   };
 
@@ -79,7 +93,7 @@ export default function ShowsPage() {
             TV Shows
           </h2>
           <div className="text-zinc-500 text-sm md:text-base">
-            Powered by TVMaze
+            Powered by TVMaze • Ordered by Rating
           </div>
         </div>
 
@@ -103,12 +117,10 @@ export default function ShowsPage() {
 
       {/* Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-    
-
         <div className="lg:col-span-9 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
           {filtered.length === 0 ? (
             <div className="col-span-full text-center py-20 text-zinc-400 text-xl">
-              No results found
+              {search ? 'No results found' : 'No rated shows available on this page'}
             </div>
           ) : (
             filtered.map(item => <Card key={item.id} item={item} />)
@@ -116,7 +128,7 @@ export default function ShowsPage() {
         </div>
       </div>
 
-      {/* Pagination */}
+      {/* Pagination - note: sorting is per-page when paginating */}
       {!search && (
         <div className="flex justify-center items-center gap-6 mt-16">
           <button
@@ -128,7 +140,7 @@ export default function ShowsPage() {
           </button>
 
           <span className="text-white text-lg">
-            Page {page + 1}
+            Page {page + 1} (sorted by rating)
           </span>
 
           <button
