@@ -1,5 +1,5 @@
 import { AuthProvider } from './context/AuthContext';
-import { BrowserRouter, Routes, Route, Outlet } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import Header from './components/helpers/Header';
 import Sidebar from './components/helpers/Sidebar';
 import AnimePage from './components/section/AnimeSection';
@@ -14,6 +14,10 @@ import ProfilePage from './pages/ProfilePage';
 import { useState } from 'react';
 import FloatingAnimeCharacter from "./components/helpers/FloatingAnimeCharacter";
 import SplashScreen from './components/helpers/SplashScreen';
+import { App as CapApp } from "@capacitor/app";
+import { Dialog } from '@capacitor/dialog';
+import { useRef } from 'react';
+import { useEffect } from 'react';
 
 function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -40,12 +44,52 @@ function Layout() {
 }
 
 
+function BackButtonHandler() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const historyRef = useRef([]);
+
+  useEffect(() => {
+    historyRef.current.push(location.pathname);
+  }, [location]);
+
+  useEffect(() => {
+    const handler = CapApp.addListener("backButton", async () => {
+      const currentPath = location.pathname;
+
+      if (historyRef.current.length > 1) {
+        historyRef.current.pop(); 
+        const previousPath = historyRef.current[historyRef.current.length - 1];
+        navigate(previousPath);
+        return;
+      }
+
+      const { value } = await Dialog.confirm({
+        title: "Exit App",
+        message: "Are you sure you want to exit the app?",
+        okButtonTitle: "Yes",
+        cancelButtonTitle: "No",
+      });
+
+      if (value) {
+        CapApp.exitApp();
+      }
+    });
+
+    return () => {
+      handler.remove();
+    };
+  }, [navigate, location]);
+
+  return null;
+}
 
 function App() {
   return (
    
     <AuthProvider>
       <BrowserRouter>
+      <BackButtonHandler />
        <SplashScreen />
         <Routes>
           
