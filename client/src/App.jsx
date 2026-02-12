@@ -18,6 +18,8 @@ import { App as CapApp } from "@capacitor/app";
 import { Dialog } from '@capacitor/dialog';
 import { useRef } from 'react';
 import { useEffect } from 'react';
+import Footer from "./components/helpers/Footer"
+
 
 function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
