@@ -12,7 +12,7 @@ import { protect } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-router.use(protect); // all routes require auth
+router.use(protect); 
 
 router.post('/wishlist', addToWishlist);
 router.delete('/wishlist', removeFromWishlist);

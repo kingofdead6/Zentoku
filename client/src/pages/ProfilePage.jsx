@@ -3,8 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import { NODE_API } from '../../api';
 import { Link } from 'react-router-dom';
-import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
-import 'react-circular-progressbar/dist/styles.css';
+import { motion } from 'framer-motion';
 
 export default function ProfilePage() {
   const { user, isAuthenticated } = useAuth();
@@ -57,18 +56,18 @@ export default function ProfilePage() {
         validWatchedItems.forEach(item => {
           if (item.type === 'anime') {
             anime++;
-            units += item.count || 0; // episodes
+            units += item.count || 0;
           } else if (item.type === 'manga' || item.type === 'manhwa') {
             manga++;
             if (typeof item.count === 'number') {
-              units += item.count; // chapters
+              units += item.count;
             }
           } else if (item.type === 'show') {
             show++;
-            units += item.count || 0; // runtime in minutes
+            units += item.count || 0;
           } else if (item.type === 'book') {
             book++;
-            units += 1; // count books as 1 unit each
+            units += 1;
           }
         });
 
@@ -153,7 +152,7 @@ export default function ProfilePage() {
 
       if (media?.chapters) return media.chapters;
 
-      return 0; // Return 0 instead of 'Ongoing' for calculations
+      return 0;
     } catch (err) {
       console.error('AniList fetch error:', err);
       return 0;
@@ -169,7 +168,6 @@ export default function ProfilePage() {
         const json = await res.json();
         const a = json.data;
 
-        // Get episode count with AniList fallback
         let count = a.episodes;
         if (count === null) {
           count = await fetchAniListEpisodes(a.title);
@@ -190,7 +188,6 @@ export default function ProfilePage() {
         const json = await res.json();
         const m = json.data;
 
-        // Get chapter count with AniList fallback
         let count = m.chapters;
         if (count === null) {
           count = await fetchAniListMangaChapters(m.title);
@@ -219,7 +216,7 @@ export default function ProfilePage() {
       case 'book': {
         return {
           id: mediaId,
-          count: 1, // Books count as 1 unit
+          count: 1,
           type: 'book',
         };
       }
@@ -233,11 +230,16 @@ export default function ProfilePage() {
     return (
       <section className="min-h-screen bg-gradient-to-b from-gray-950 to-gray-900 text-gray-100 flex items-center justify-center">
         <div className="text-center px-6 py-12">
-          <h2 className="text-3xl md:text-4xl font-bold mb-6 text-white">Your Profile</h2>
-          <p className="text-xl text-gray-300 mb-8">Please log in to view your profile</p>
+          <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
+            <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+          </div>
+          <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white">Your Profile</h2>
+          <p className="text-lg text-gray-400 mb-8">Please log in to view your profile</p>
           <Link
             to="/login"
-            className="inline-block px-8 py-3.5 rounded-xl bg-green-600 hover:bg-green-500 text-white font-semibold shadow-md transition-colors"
+            className="inline-block px-8 py-3.5 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white font-semibold shadow-lg shadow-green-900/40 transition-all hover:scale-105"
           >
             Log In
           </Link>
@@ -249,7 +251,10 @@ export default function ProfilePage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-950 to-gray-900 text-gray-100 flex items-center justify-center">
-        <div className="text-center py-20 text-xl">Loading profile...</div>
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-xl text-zinc-400">Loading profile...</p>
+        </div>
       </div>
     );
   }
@@ -257,92 +262,155 @@ export default function ProfilePage() {
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-950 to-gray-900 text-gray-100 flex items-center justify-center">
-        <div className="text-center py-20 text-red-400 text-xl">{error}</div>
+        <div className="text-center py-20">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-500/20 flex items-center justify-center">
+            <svg className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </div>
+          <p className="text-red-400 text-xl">{error}</p>
+        </div>
       </div>
     );
   }
 
-  const progress = stats.totalWatched + stats.totalFavorites > 0
-    ? Math.round((stats.totalWatched / (stats.totalWatched + stats.totalFavorites)) * 100)
-    : 0;
-
   return (
-    <section className="min-h-screen bg-gradient-to-b from-gray-950 to-gray-900 text-gray-100">
-      <div className="max-w-4xl mx-auto py-12 px-6">
+    <section className="min-h-screen bg-gradient-to-b from-gray-950 to-gray-900 text-gray-100 pb-12">
+      <div className="max-w-6xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="text-center mb-16">
-          <h1 className="text-5xl font-bold text-white tracking-tighter mb-2">{user.name}</h1>
-          <p className="text-zinc-400 text-xl">{user.email}</p>
-        </div>
-
-        {/* Main Stats Section */}
-        <div className="bg-zinc-900/90 backdrop-blur-xl rounded-3xl p-10 border border-zinc-800 shadow-2xl">
-          <div className="flex flex-col md:flex-row items-center justify-center gap-16">
-
-            {/* Circle + Both Numbers */}
-            <div className="relative w-64 h-64 flex-shrink-0">
-              <CircularProgressbar
-                value={progress}
-                strokeWidth={8}
-                styles={buildStyles({
-                  pathColor: '#22d3ee',        // cyan
-                  trailColor: '#3b82f6',       // blue (favorites color)
-                  backgroundColor: '#18181b',
-                  textColor: '#fff',
-                  pathTransitionDuration: 1.2,
-                })}
-              />
-
-              {/* Center Content */}
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                <div className="text-6xl font-bold text-white mb-1">{stats.totalWatched}</div>
-                <div className="text-cyan-400 text-sm tracking-widest uppercase">Watched</div>
-
-                <div className="my-6 w-16 h-px bg-gradient-to-r from-transparent via-zinc-500 to-transparent" />
-
-                <div className="text-5xl font-bold text-purple-400 mb-1">{stats.totalFavorites}</div>
-                <div className="text-purple-400 text-sm tracking-widest uppercase">Favorites</div>
-              </div>
-            </div>
-
-            {/* Total Units */}
-            <div className="text-center md:text-left">
-              <div className="text-emerald-400 text-7xl font-bold mb-2 tracking-tighter">
-                {stats.totalUnits.toLocaleString()}
-              </div>
-              <div className="text-zinc-400 text-2xl font-light">content units watched</div>
-              <p className="text-zinc-500 text-sm mt-2">(episodes + chapters + runtime)</p>
-            </div>
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center mb-12"
+        >
+          <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-br from-green-500 via-emerald-600 to-teal-600 flex items-center justify-center text-4xl font-bold text-white shadow-xl shadow-green-900/50">
+            {user.name?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase()}
           </div>
+          <h1 className="text-4xl sm:text-5xl font-bold text-white mb-2">{user.name}</h1>
+          <p className="text-zinc-400 text-lg">{user.email}</p>
+        </motion.div>
+
+        {/* Main Stats Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          {/* Watched */}
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.1 }}
+            className="bg-gradient-to-br from-zinc-900 to-zinc-800 rounded-2xl p-8 border border-zinc-700/50 shadow-xl hover:scale-105 transition-transform"
+          >
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-900/50">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+              </div>
+              <h3 className="text-cyan-400 text-lg font-semibold">Watched</h3>
+            </div>
+            <div className="text-5xl font-bold text-white mb-2">{stats.totalWatched}</div>
+            <p className="text-zinc-500 text-sm">Total items completed</p>
+          </motion.div>
+
+          {/* Favorites */}
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.2 }}
+            className="bg-gradient-to-br from-zinc-900 to-zinc-800 rounded-2xl p-8 border border-zinc-700/50 shadow-xl hover:scale-105 transition-transform"
+          >
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center shadow-lg shadow-pink-900/50">
+                <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <h3 className="text-pink-400 text-lg font-semibold">Favorites</h3>
+            </div>
+            <div className="text-5xl font-bold text-white mb-2">{stats.totalFavorites}</div>
+            <p className="text-zinc-500 text-sm">Saved for later</p>
+          </motion.div>
+
+          {/* Total Units */}
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.3 }}
+            className="bg-gradient-to-br from-green-600 to-emerald-700 rounded-2xl p-8 shadow-xl hover:scale-105 transition-transform border border-green-500/30"
+          >
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <h3 className="text-white text-lg font-semibold">Content Units</h3>
+            </div>
+            <div className="text-5xl font-bold text-white mb-2">{stats.totalUnits.toLocaleString()}</div>
+            <p className="text-green-100 text-sm">Episodes, chapters & runtime</p>
+          </motion.div>
         </div>
 
         {/* Category Breakdown */}
-        <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-6">
-          <CategoryCard title="Anime" count={stats.animeCount} color="from-cyan-400 to-blue-500" />
-          <CategoryCard title="Manga" count={stats.mangaCount} color="from-purple-400 to-pink-500" />
-          <CategoryCard title="TV Shows" count={stats.showCount} color="from-emerald-400 to-green-500" />
-          <CategoryCard title="Books" count={stats.bookCount} color="from-amber-400 to-yellow-500" />
-        </div>
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="mb-8"
+        >
+          <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
+            <span className="w-8 h-1 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full"></span>
+            Category Breakdown
+          </h2>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <CategoryCard title="Anime" count={stats.animeCount} icon="🎬" gradient="from-cyan-500 to-blue-600" />
+            <CategoryCard title="Manga" count={stats.mangaCount} icon="📖" gradient="from-purple-500 to-pink-600" />
+            <CategoryCard title="TV Shows" count={stats.showCount} icon="📺" gradient="from-emerald-500 to-green-600" />
+            <CategoryCard title="Books" count={stats.bookCount} icon="📚" gradient="from-amber-500 to-orange-600" />
+          </div>
+        </motion.div>
 
-        {/* Links */}
-        <div className="flex flex-col sm:flex-row justify-center gap-6 mt-16">
-          <Link to="/watched" className="px-10 py-4 bg-white text-black font-semibold rounded-2xl hover:bg-zinc-200 transition text-center">
+        {/* Action Buttons */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="flex flex-col sm:flex-row justify-center gap-4"
+        >
+          <Link 
+            to="/watched" 
+            className="group px-8 py-4 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white font-semibold rounded-xl shadow-lg shadow-green-900/40 transition-all hover:scale-105 text-center flex items-center justify-center gap-2"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
             View Watched
           </Link>
-          <Link to="/favorites" className="px-10 py-4 bg-white/10 hover:bg-white/20 border border-white/20 font-semibold rounded-2xl transition text-center">
+          <Link 
+            to="/favorites" 
+            className="group px-8 py-4 bg-zinc-800 hover:bg-zinc-700 border-2 border-zinc-700 hover:border-zinc-600 text-white font-semibold rounded-xl transition-all hover:scale-105 text-center flex items-center justify-center gap-2"
+          >
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+            </svg>
             View Favorites
           </Link>
-        </div>
+        </motion.div>
       </div>
     </section>
   );
 }
 
-function CategoryCard({ title, count, color }) {
+function CategoryCard({ title, count, icon, gradient }) {
   return (
-    <div className={`bg-gradient-to-br ${color} rounded-3xl p-8 text-white shadow-xl hover:scale-105 transition-transform`}>
-      <div className="text-6xl font-bold mb-2">{count}</div>
-      <div className="text-xl font-medium opacity-90">{title}</div>
-    </div>
+    <motion.div 
+      whileHover={{ scale: 1.05 }}
+      className={`bg-gradient-to-br ${gradient} rounded-2xl p-6 text-white shadow-xl border border-white/10`}
+    >
+      <div className="text-3xl mb-3">{icon}</div>
+      <div className="text-4xl font-bold mb-1">{count}</div>
+      <div className="text-sm font-medium opacity-90">{title}</div>
+    </motion.div>
   );
 }

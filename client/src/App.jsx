@@ -49,7 +49,6 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/profile" element={<ProfilePage />} />
 
           <Route element={<Layout />}>
             <Route index element={<AnimePage />} />
@@ -57,6 +56,7 @@ function App() {
             <Route path="/manga" element={<MangaPage />} />
             <Route path="/shows" element={<ShowsPage />} />
             <Route path="/books" element={<BooksPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
             <Route path="/favorites" element={<FavoritesPage />} />
             <Route path="/watched" element={<WatchedPage />} />
             <Route path="*" element={<div className="text-center py-40 text-2xl">404</div>} />

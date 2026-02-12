@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
 import Card from '../components/helpers/Card';
 import Loading from '../components/helpers/Loading';
+import CardPopup from '../components/helpers/CardPopup';
 
 import axios from 'axios';
 import { NODE_API } from '../../api';
@@ -12,6 +13,7 @@ export default function FavoritesPage() {
   const [mediaItems, setMediaItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedItem, setSelectedItem] = useState(null);
 
   useEffect(() => {
     if (!isAuthenticated || !user?.userId) return;
@@ -225,6 +227,17 @@ export default function FavoritesPage() {
     }
   };
 
+  // Handle item removal - immediately update the UI
+  const handleItemRemoved = (mediaId, mediaType) => {
+    setMediaItems(prevItems => 
+      prevItems.filter(item => 
+        !(String(item.id) === String(mediaId) && item.type === mediaType)
+      )
+    );
+    // Close the popup after removal
+    setSelectedItem(null);
+  };
+
   if (!isAuthenticated) {
     return (
       <section className="min-h-screen bg-gradient-to-b from-gray-950 to-gray-900 text-gray-100 flex items-center justify-center">
@@ -272,9 +285,11 @@ export default function FavoritesPage() {
 
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 mt-6">
           {mediaItems.map((item) => (
-            <div key={`${item.type}-${item.id}`} className="cursor-pointer">
-              <Card item={item} />
-            </div>
+            <Card 
+              key={`${item.type}-${item.id}`} 
+              item={item} 
+              onClick={() => setSelectedItem(item)}
+            />
           ))}
         </div>
 
@@ -282,6 +297,13 @@ export default function FavoritesPage() {
           Click any card to see more details
         </p>
       </div>
+
+      <CardPopup 
+        item={selectedItem} 
+        isOpen={!!selectedItem} 
+        onClose={() => setSelectedItem(null)}
+        onItemRemoved={handleItemRemoved}
+      />
     </section>
   );
 }

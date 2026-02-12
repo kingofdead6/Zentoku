@@ -1,6 +1,6 @@
-// components/Header.jsx
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import Logo  from '../../assets/Logo.jpg';
 
 export default function Header({ onMenuClick }) {
   const navigate = useNavigate();
@@ -24,8 +24,8 @@ export default function Header({ onMenuClick }) {
             onClick={() => navigate('/')}
             className="flex items-center gap-3 cursor-pointer"
           >
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-600 to-fuchsia-600 flex items-center justify-center font-black text-white">
-              Z
+            <div className=" rounded-full flex items-center justify-center font-black text-white">
+               <img src={Logo} alt="Logo" className="w-12 h-12 rounded-full" />
             </div>
             <span className="text-white font-bold text-xl hidden sm:block">
               Zentoku
@@ -38,7 +38,7 @@ export default function Header({ onMenuClick }) {
           {!isAuthenticated ? (
             <button
               onClick={() => navigate('/login')}
-              className="px-4 py-2 rounded-lg bg-white text-black font-semibold hover:bg-zinc-200"
+              className="px-4 py-2 rounded-lg bg-white text-black font-semibold hover:bg-zinc-200 cursor-pointer "
             >
               Login
             </button>
@@ -46,13 +46,13 @@ export default function Header({ onMenuClick }) {
             <>
               <button
                 onClick={() => navigate('/profile')}
-                className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-600 to-fuchsia-600 text-white font-bold"
+                className="cursor-pointer w-9 h-9 rounded-full bg-gradient-to-br from-violet-600 to-fuchsia-600 text-white font-bold hover:scale-110 transform transition"
               >
                 {user.email?.[0]?.toUpperCase()}
               </button>
               <button
                 onClick={logout}
-                className="text-zinc-400 hover:text-white text-sm"
+                className="text-zinc-400 hover:text-red-500 transform transition cursor-pointer text-sm"
               >
                 Logout
               </button>
