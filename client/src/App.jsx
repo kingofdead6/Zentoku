@@ -1,4 +1,3 @@
-// src/App.jsx
 import { AuthProvider } from './context/AuthContext';
 import { BrowserRouter, Routes, Route, Outlet } from 'react-router-dom';
 import Header from './components/helpers/Header';
@@ -13,6 +12,7 @@ import FavoritesPage from './pages/FavoritesPage';
 import WatchedPage from './pages/WatchedPage';
 import ProfilePage from './pages/ProfilePage';
 import { useState } from 'react';
+import FloatingAnimeCharacter from "./components/helpers/FloatingAnimeCharacter";
 
 function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -20,17 +20,15 @@ function Layout() {
   return (
     <div className="min-h-screen  text-zinc-100">
       <Header onMenuClick={() => setSidebarOpen(true)} />
-
+      
       <div className="flex">
         <Sidebar
           isOpen={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
         />
-
+  <FloatingAnimeCharacter />
         <main className="flex-1 lg:ml-64">
-          {/* space for header */}
           <div className="h-4" />
-
           <div className="px-6 md:px-10 py-10 max-w-screen-2xl mx-auto">
             <Outlet />
           </div>
