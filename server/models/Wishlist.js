@@ -1,4 +1,3 @@
-// models/Wishlist.js  (or call it FavoriteList)
 import mongoose from 'mongoose';
 
 const wishlistSchema = new mongoose.Schema(
@@ -11,7 +10,10 @@ const wishlistSchema = new mongoose.Schema(
     },
     items: [
       {
-        mediaId: { type: Number, required: true },
+        mediaId: { 
+          type: mongoose.Schema.Types.Mixed, // Changed from Number to Mixed to support both String and Number
+          required: true 
+        },
         mediaType: {
           type: String,
           enum: ['anime', 'manga', 'manhwa', 'show', 'book'],
@@ -21,7 +23,6 @@ const wishlistSchema = new mongoose.Schema(
           type: Date,
           default: Date.now,
         },
-        // Optional future fields: priority, note, etc.
       },
     ],
   },

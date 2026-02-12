@@ -1,11 +1,38 @@
 const BASE = 'https://api.jikan.moe/v4';
-
-// hentai, erotica, ecchi, doujinshi
 const ADULT_EXCLUDE = 'genres_exclude=12,49,9,43';
 
-/* =========================
-   ANIME (ordered by score)
-========================= */
+
+const fetchAniListEpisodes = async (title) => {
+  const query = `
+    query ($search: String) {
+      Media(search: $search, type: ANIME) {
+        episodes
+        nextAiringEpisode {
+          episode
+        }
+      }
+    }
+  `;
+
+  const res = await fetch('https://graphql.anilist.co', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      query,
+      variables: { search: title },
+    }),
+  });
+
+  const json = await res.json();
+  const media = json.data.Media;
+
+  if (media.episodes) return media.episodes;
+  if (media.nextAiringEpisode)
+    return media.nextAiringEpisode.episode - 1;
+
+  return 0;
+};
+
 export const fetchAnime = async (page = 1, search = '') => {
   const url = search
     ? `${BASE}/anime?q=${encodeURIComponent(search)}&page=${page}&limit=25&order_by=score&sort=desc&${ADULT_EXCLUDE}`
@@ -14,25 +41,66 @@ export const fetchAnime = async (page = 1, search = '') => {
   const res = await fetch(url);
   const json = await res.json();
 
+  const items = await Promise.all(
+    json.data.map(async (a) => {
+      let count = a.episodes;
+
+      if (count === null) {
+        count = await fetchAniListEpisodes(a.title);
+      }
+
+      return {
+        id: a.mal_id,
+        title: a.title,
+        image: a.images.jpg.large_image_url,
+        year: a.year,
+        count: count ?? 0,
+        genres: a.genres.map(g => g.name),
+        type: 'anime',
+        score: a.score ?? 0,
+        description: a.synopsis || '',
+      };
+    })
+  );
+
   return {
-    items: json.data.map(a => ({
-      id: a.mal_id,
-      title: a.title,
-      image: a.images.jpg.large_image_url,
-      year: a.year,
-      count: a.episodes,
-      genres: a.genres.map(g => g.name),
-      type: 'anime',
-      score: a.score ?? 0,
-      description: a.synopsis || '', // added description
-    })),
+    items,
     hasNextPage: json.pagination.has_next_page,
   };
 };
 
-/* =========================
-   MANGA + MANHWA (ordered)
-========================= */
+
+const fetchAniListMangaChapters = async (title) => {
+  const query = `
+    query ($search: String) {
+      Media(search: $search, type: MANGA) {
+        chapters
+      }
+    }
+  `;
+
+  try {
+    const res = await fetch('https://graphql.anilist.co', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query,
+        variables: { search: title },
+      }),
+    });
+
+    const json = await res.json();
+    const media = json.data?.Media;
+
+    if (media?.chapters) return media.chapters;
+
+    return 'Ongoing';
+  } catch (err) {
+    console.error('AniList fetch error:', err);
+    return 'Ongoing';
+  }
+};
+
 async function fetchMangaType(type, page, search) {
   const url = search
     ? `${BASE}/manga?q=${encodeURIComponent(search)}&type=${type}&page=${page}&limit=25&order_by=score&sort=desc&${ADULT_EXCLUDE}`
@@ -48,31 +116,37 @@ export const fetchManga = async (page = 1, search = '') => {
     fetchMangaType('manhwa', page, search),
   ]);
 
-  const merged = [...mangaRes.data, ...manhwaRes.data]
-    .map(m => ({
-      id: m.mal_id,
-      title: m.title,
-      image: m.images?.jpg?.large_image_url,
-      year: m.year,
-      count: m.chapters,
-      genres: m.genres.map(g => g.name),
-      type: m.type.toLowerCase(),
-      score: m.score ?? 0,
-      description: m.synopsis || '', // added description
-    }))
-    .sort((a, b) => b.score - a.score);
+  const merged = [...mangaRes.data, ...manhwaRes.data];
+
+  const items = await Promise.all(
+    merged.map(async (m) => {
+      let count = m.chapters;
+
+      if (count === null) {
+        count = await fetchAniListMangaChapters(m.title);
+      }
+
+      return {
+        id: m.mal_id,
+        title: m.title,
+        image: m.images?.jpg?.large_image_url,
+        year: m.year,
+        count: count ?? 'Ongoing',
+        genres: m.genres.map((g) => g.name),
+        type: m.type.toLowerCase(),
+        score: m.score ?? 0,
+        description: m.synopsis || '',
+      };
+    })
+  );
 
   return {
-    items: merged,
+    items: items.sort((a, b) => b.score - a.score),
     hasNextPage:
-      mangaRes.pagination.has_next_page ||
-      manhwaRes.pagination.has_next_page,
+      mangaRes.pagination.has_next_page || manhwaRes.pagination.has_next_page,
   };
 };
 
-/* =========================
-   SHOWS (TVMaze)
-========================= */
 export const fetchShows = async (page = 0) => {
   const res = await fetch(`https://api.tvmaze.com/shows?page=${page}`);
   const data = await res.json();
@@ -85,16 +159,13 @@ export const fetchShows = async (page = 0) => {
       year: s.premiered ? new Date(s.premiered).getFullYear() : null,
       count: s.runtime || null,
       genres: s.genres || [],
-      score: s.rating?.average ?? 0, // 🔴 IMPORTANT: default to 0
+      score: s.rating?.average ?? 0,
       type: 'show',
       description: s.summary ? s.summary.replace(/<[^>]+>/g, '') : '',
     }))
-    .sort((a, b) => b.score - a.score); // ✅ ALWAYS ordered by rating
+    .sort((a, b) => b.score - a.score); 
 };
 
-/* =========================
-   BOOKS / WEB NOVELS
-========================= */
 export const fetchBooks = async (page = 1, search = '') => {
   const query = search || 'web novel fantasy';
 

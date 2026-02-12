@@ -1,4 +1,3 @@
-// models/Watchlist.js
 import mongoose from 'mongoose';
 
 const watchlistSchema = new mongoose.Schema(
@@ -7,11 +6,14 @@ const watchlistSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: true,
-      unique: true, // one watchlist per user
+      unique: true, 
     },
     items: [
       {
-        mediaId: { type: Number, required: true },      // mal_id or tvmaze id or openlibrary key (as number/string)
+        mediaId: { 
+          type: mongoose.Schema.Types.Mixed, // Changed from Number to Mixed to support both String and Number
+          required: true 
+        },     
         mediaType: {
           type: String,
           enum: ['anime', 'manga', 'manhwa', 'show', 'book'],
@@ -21,7 +23,6 @@ const watchlistSchema = new mongoose.Schema(
           type: Date,
           default: Date.now,
         },
-        // You can later add: status, progress, rating, note, etc.
       },
     ],
   },

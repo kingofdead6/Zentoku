@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { useAuth } from "../context/AuthContext"; // adjust path if needed
+import { useAuth } from "../../context/AuthContext"; // adjust path if needed
 import axios from "axios";
-import { NODE_API } from "../../api"; // your api config file
+import { NODE_API } from "../../../api"; // your api config file
 import { useState } from "react";
 
 export default function CardPopup({

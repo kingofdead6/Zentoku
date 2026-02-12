@@ -1,4 +1,3 @@
-// controllers/listController.js
 import asyncHandler from 'express-async-handler';
 import Watchlist from '../models/Watchlist.js';
 import Wishlist from '../models/Wishlist.js';
@@ -11,7 +10,12 @@ const getOrCreateList = async (Model, userId) => {
   return list;
 };
 
-// ───────────────────────────────────────────────
+// Helper to compare mediaIds (handles both strings and numbers)
+const isSameMedia = (item, mediaId, mediaType) => {
+  return String(item.mediaId) === String(mediaId) && item.mediaType === mediaType;
+};
+
+// ─────────────────────────────────────────────── 
 //  Wishlist (Favorites)
 // ───────────────────────────────────────────────
 
@@ -25,8 +29,8 @@ export const addToWishlist = asyncHandler(async (req, res) => {
 
   const wishlist = await getOrCreateList(Wishlist, req.userId);
 
-  const alreadyExists = wishlist.items.some(
-    item => item.mediaId === mediaId && item.mediaType === mediaType
+  const alreadyExists = wishlist.items.some(item => 
+    isSameMedia(item, mediaId, mediaType)
   );
 
   if (alreadyExists) {
@@ -51,8 +55,8 @@ export const removeFromWishlist = asyncHandler(async (req, res) => {
     return res.json({ success: true, wishlist: [] });
   }
 
-  wishlist.items = wishlist.items.filter(
-    item => !(item.mediaId === mediaId && item.mediaType === mediaType)
+  wishlist.items = wishlist.items.filter(item => 
+    !isSameMedia(item, mediaId, mediaType)
   );
 
   await wishlist.save();
@@ -68,7 +72,7 @@ export const getWishlist = asyncHandler(async (req, res) => {
   });
 });
 
-// ───────────────────────────────────────────────
+// ─────────────────────────────────────────────── 
 //  Watched / Watchlist
 // ───────────────────────────────────────────────
 
@@ -82,8 +86,8 @@ export const addToWatched = asyncHandler(async (req, res) => {
 
   const watchlist = await getOrCreateList(Watchlist, req.userId);
 
-  const alreadyExists = watchlist.items.some(
-    item => item.mediaId === mediaId && item.mediaType === mediaType
+  const alreadyExists = watchlist.items.some(item => 
+    isSameMedia(item, mediaId, mediaType)
   );
 
   if (alreadyExists) {
@@ -108,8 +112,8 @@ export const removeFromWatched = asyncHandler(async (req, res) => {
     return res.json({ success: true, watched: [] });
   }
 
-  watchlist.items = watchlist.items.filter(
-    item => !(item.mediaId === mediaId && item.mediaType === mediaType)
+  watchlist.items = watchlist.items.filter(item => 
+    !isSameMedia(item, mediaId, mediaType)
   );
 
   await watchlist.save();

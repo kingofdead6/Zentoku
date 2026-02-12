@@ -1,31 +1,46 @@
 // src/App.jsx
 import { AuthProvider } from './context/AuthContext';
 import { BrowserRouter, Routes, Route, Outlet } from 'react-router-dom';
-import Header from './components/Header';
-import Sidebar from './components/Sidebar';
-import AnimePage from './pages/AnimeSection';
-import MangaPage from './pages/MangaSection';
-import ShowsPage from './pages/ShowsSection';
-import BooksPage from './pages/BooksSection';
+import Header from './components/helpers/Header';
+import Sidebar from './components/helpers/Sidebar';
+import AnimePage from './components/section/AnimeSection';
+import MangaPage from './components/section/MangaSection';
+import ShowsPage from './components/section/ShowsSection';
+import BooksPage from './components/section/BooksSection';
 import Login from './components/auth/Login';
 import Register from './components/auth/Register';
 import FavoritesPage from './pages/FavoritesPage';
 import WatchedPage from './pages/WatchedPage';
 import ProfilePage from './pages/ProfilePage';
+import { useState } from 'react';
 
 function Layout() {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   return (
-    <div className="bg-zinc-950 text-white min-h-screen">
-      <Header />
+    <div className="min-h-screen  text-zinc-100">
+      <Header onMenuClick={() => setSidebarOpen(true)} />
+
       <div className="flex">
-        <Sidebar />
-        <main className="flex-1 ml-72 pt-24 pb-16 px-6 md:px-12 max-w-screen-2xl mx-auto">
-          <Outlet />
+        <Sidebar
+          isOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+        />
+
+        <main className="flex-1 lg:ml-64">
+          {/* space for header */}
+          <div className="h-4" />
+
+          <div className="px-6 md:px-10 py-10 max-w-screen-2xl mx-auto">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>
   );
 }
+
+
 
 function App() {
   return (
