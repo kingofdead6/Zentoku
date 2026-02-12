@@ -13,6 +13,7 @@ import WatchedPage from './pages/WatchedPage';
 import ProfilePage from './pages/ProfilePage';
 import { useState } from 'react';
 import FloatingAnimeCharacter from "./components/helpers/FloatingAnimeCharacter";
+import SplashScreen from './components/helpers/SplashScreen';
 
 function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -42,9 +43,12 @@ function Layout() {
 
 function App() {
   return (
+   
     <AuthProvider>
       <BrowserRouter>
+       <SplashScreen />
         <Routes>
+          
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
 
