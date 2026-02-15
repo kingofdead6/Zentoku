@@ -42,14 +42,14 @@ export default function Header({ onMenuClick }) {
       className="cursor-pointer w-9 h-9 rounded-full bg-gradient-to-br from-violet-600 to-fuchsia-600 text-white font-bold hover:scale-110 transform transition overflow-hidden"
     >
       {user.avatar ? (
-        <img
-          src={user.avatar}
-          alt="Profile"
-          className="w-full h-full object-cover"
-        />
-      ) : (
-        user.email?.[0]?.toUpperCase()
-      )}
+  <img
+    src={user.avatar}
+    alt="Profile"
+    className="w-full h-full object-cover"
+  />
+) : (
+  user.email?.[0]?.toUpperCase()
+)}
     </button>
     <button
       onClick={logout}

@@ -26,32 +26,36 @@ export function AuthProvider({ children }) {
 
 
   // 🔐 EMAIL LOGIN
-  const login = async (email, password) => {
-    try {
-      const { data } = await axios.post(`${NODE_API}/auth/login`, {
-        email,
-        password,
-      });
+const login = async (email, password) => {
+  try {
+    const { data } = await axios.post(`${NODE_API}/auth/login`, {
+      email,
+      password,
+    });
 
-      const { user: userData } = data;
+    const { user: userData } = data;
 
-      sessionStorage.setItem('email', userData.email);
-      sessionStorage.setItem('userId', userData.id);
+    sessionStorage.setItem('email', userData.email);
+    sessionStorage.setItem('userId', userData.id);
+    // store avatar if backend returns it (optional)
+    if (userData.avatar_url) sessionStorage.setItem('avatar', userData.avatar_url);
 
-      setUser({
-        email: userData.email,
-        userId: userData.id,
-      });
+    setUser({
+      email: userData.email,
+      userId: userData.id,
+      avatar: userData.avatar_url || null, // <--- important
+    });
 
-      return { success: true };
-    } catch (err) {
-      return {
-        success: false,
-        error: err.response?.data?.message || 'Login failed',
-      };
-    }
-  };
+    return { success: true };
+  } catch (err) {
+    return {
+      success: false,
+      error: err.response?.data?.message || 'Login failed',
+    };
+  }
+};
 
+// 🟢 GOOGLE LOGIN
 const googleLogin = async (token) => {
   try {
     const { data } = await axios.post(
@@ -73,7 +77,7 @@ const googleLogin = async (token) => {
     setUser({
       email: userData.email,
       userId: userData.id,
-      avatar: userData.avatar_url || null,
+      avatar: userData.avatar_url || null, // <--- ensure this is "avatar"
     });
 
     return { success: true };
@@ -84,6 +88,7 @@ const googleLogin = async (token) => {
     };
   }
 };
+
 
 
   const register = async (name, email, password) => {
