@@ -33,7 +33,7 @@ export default function Login() {
   await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: 'http://localhost:5173/auth/callback'
+      redirectTo: 'https://zentoku.vercel.app/auth/callback'
     }
   });
 };

@@ -119,7 +119,7 @@ export function AuthProvider({ children }) {
     user,
     loading,
     login,
-    googleLogin, // 👈 IMPORTANT
+    googleLogin, 
     register,
     logout,
     isAuthenticated: !!user,
