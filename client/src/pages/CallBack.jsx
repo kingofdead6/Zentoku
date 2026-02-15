@@ -1,4 +1,3 @@
-// src/pages/AuthCallback.jsx
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../utils/supabase';
@@ -10,23 +9,35 @@ export default function AuthCallback() {
 
   useEffect(() => {
     const handleGoogleAuth = async () => {
-      const { data } = await supabase.auth.getSession();
+      try {
+        // Subscribe to auth state changes
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+          async (event, session) => {
+            if (session?.access_token) {
+              const token = session.access_token;
 
-      if (data.session) {
-        const token = data.session.access_token;
+              const result = await googleLogin(token);
 
-        const result = await googleLogin(token);
+              if (result.success) {
+                navigate('/anime');
+              } else {
+                console.error('Google login failed:', result.error);
+              }
+            }
+          }
+        );
 
-        if (result.success) {
-          navigate('/anime');
-        } else {
-          console.error(result.error);
-        }
+        // Clean up subscription when component unmounts
+        return () => {
+          subscription.unsubscribe();
+        };
+      } catch (err) {
+        console.error('Unexpected error in Google callback:', err);
       }
     };
 
     handleGoogleAuth();
-  }, []);
+  }, [googleLogin, navigate]);
 
-  return <p>Signing you in...</p>;
+  return <p className="text-white text-center mt-40">Signing you in...</p>;
 }
