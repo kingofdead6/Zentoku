@@ -12,7 +12,7 @@ const userSchema = new mongoose.Schema(
     email: {
   type: String,
   required: true,
-  unique: true,    // this automatically creates a unique index
+  unique: true,    
   trim: true,
   lowercase: true,
 },

@@ -1,7 +1,7 @@
 // src/context/AuthContext.jsx
 import { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
-import { NODE_API } from '../../api'; // adjust path
+import { NODE_API } from '../../api';
 
 const AuthContext = createContext();
 
@@ -10,7 +10,6 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is already "logged in" via sessionStorage
     const storedEmail = sessionStorage.getItem('email');
     const storedUserId = sessionStorage.getItem('userId');
 
@@ -20,9 +19,11 @@ export function AuthProvider({ children }) {
         userId: storedUserId,
       });
     }
+
     setLoading(false);
   }, []);
 
+  // 🔐 EMAIL LOGIN
   const login = async (email, password) => {
     try {
       const { data } = await axios.post(`${NODE_API}/auth/login`, {
@@ -30,7 +31,6 @@ export function AuthProvider({ children }) {
         password,
       });
 
-      // Assuming backend returns { success: true, user: { id, name, email } }
       const { user: userData } = data;
 
       sessionStorage.setItem('email', userData.email);
@@ -46,6 +46,38 @@ export function AuthProvider({ children }) {
       return {
         success: false,
         error: err.response?.data?.message || 'Login failed',
+      };
+    }
+  };
+
+  // 🟢 GOOGLE LOGIN
+  const googleLogin = async (token) => {
+    try {
+      const { data } = await axios.post(
+        `${NODE_API}/auth/google`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const { user: userData } = data;
+
+      sessionStorage.setItem('email', userData.email);
+      sessionStorage.setItem('userId', userData.id);
+
+      setUser({
+        email: userData.email,
+        userId: userData.id,
+      });
+
+      return { success: true };
+    } catch (err) {
+      return {
+        success: false,
+        error: err.response?.data?.message || 'Google login failed',
       };
     }
   };
@@ -87,6 +119,7 @@ export function AuthProvider({ children }) {
     user,
     loading,
     login,
+    googleLogin, // 👈 IMPORTANT
     register,
     logout,
     isAuthenticated: !!user,

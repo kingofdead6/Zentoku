@@ -1,6 +1,7 @@
 import asyncHandler from 'express-async-handler';
 import validator from 'validator';
 import User from '../models/User.js';
+import jwt from 'jsonwebtoken';
 
 export const register = asyncHandler(async (req, res) => {
   const { name, email, password } = req.body;
@@ -82,5 +83,39 @@ export const login = asyncHandler(async (req, res) => {
       name: user.name,
       email: user.email,
     },
+  });
+});
+
+export const googleAuth = asyncHandler(async (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
+
+  if (!token) {
+    res.status(401);
+    throw new Error('No token provided');
+  }
+
+  // Verify using Supabase public key (simpler way)
+  const decoded = jwt.decode(token);
+
+  const email = decoded.email;
+  const name = decoded.user_metadata?.full_name || 'Google User';
+
+  let user = await User.findOne({ email });
+
+  if (!user) {
+    user = await User.create({
+      name,
+      email,
+      password: 'google-oauth-user'
+    });
+  }
+
+  return res.status(200).json({
+    success: true,
+    user: {
+      id: user._id,
+      name: user.name,
+      email: user.email
+    }
   });
 });

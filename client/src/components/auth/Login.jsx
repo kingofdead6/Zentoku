@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { supabase } from '../../utils/supabase';
 
 export default function Login() {
   const { login } = useAuth();
@@ -28,6 +29,15 @@ export default function Login() {
       setError(result.error);
     }
   };
+  const handleGoogleLogin = async () => {
+  await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: 'http://localhost:5173/auth/callback'
+    }
+  });
+};
+
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-950 to-gray-900 flex items-center justify-center px-4 py-12 relative overflow-hidden">
@@ -151,6 +161,12 @@ export default function Login() {
               )}
             </motion.button>
           </form>
+          <button
+  onClick={handleGoogleLogin}
+  className="w-full py-3 px-6 rounded-xl font-medium text-white bg-red-600 hover:bg-red-500 transition-all"
+>
+  Continue with Google
+</button>
 
           {/* Divider */}
           <div className="relative my-6">

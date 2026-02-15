@@ -19,6 +19,7 @@ import { Dialog } from '@capacitor/dialog';
 import { useRef } from 'react';
 import { useEffect } from 'react';
 import Footer from "./components/helpers/Footer"
+import AuthCallback from './pages/CallBack';
 
 
 function Layout() {
@@ -97,7 +98,7 @@ function App() {
           
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-
+          <Route path="/auth/callback" element={<AuthCallback />} />
           <Route element={<Layout />}>
             <Route index element={<AnimePage />} />
             <Route path="/anime" element={<AnimePage />} />
