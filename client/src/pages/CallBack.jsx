@@ -2,31 +2,33 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../utils/supabase';
-import { useAuth } from '../context/AuthContext';
 
 export default function AuthCallback() {
   const navigate = useNavigate();
-  const { googleLogin } = useAuth();
 
   useEffect(() => {
     const handleGoogleAuth = async () => {
-      const { data } = await supabase.auth.getSession();
+      // Use getSessionFromUrl to extract the session from the URL after redirect
+      const { data, error } = await supabase.auth.getSessionFromUrl({ storeSession: true });
 
-      if (data.session) {
-        const token = data.session.access_token;
+      if (error) {
+        console.error('OAuth error:', error);
+        navigate('/login'); // back to login on error
+        return;
+      }
 
-        const result = await googleLogin(token);
+      if (data?.session) {
+        // store user info locally
+        const user = data.session.user;
+        sessionStorage.setItem('email', user.email);
+        sessionStorage.setItem('userId', user.id);
 
-        if (result.success) {
-          navigate('/anime');
-        } else {
-          console.error(result.error);
-        }
+        navigate('/anime'); // redirect after login
       }
     };
 
     handleGoogleAuth();
-  }, []);
+  }, [navigate]);
 
   return <p>Signing you in...</p>;
 }
