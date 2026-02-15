@@ -10,18 +10,20 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const storedEmail = sessionStorage.getItem('email');
-    const storedUserId = sessionStorage.getItem('userId');
+  const storedEmail = sessionStorage.getItem('email');
+  const storedUserId = sessionStorage.getItem('userId');
+  const storedAvatar = sessionStorage.getItem('avatar');
 
-    if (storedEmail && storedUserId) {
-      setUser({
-        email: storedEmail,
-        userId: storedUserId,
-      });
-    }
+  if (storedEmail && storedUserId) {
+    setUser({
+      email: storedEmail,
+      userId: storedUserId,
+      avatar: storedAvatar || null,
+    });
+  }
+  setLoading(false);
+}, []);
 
-    setLoading(false);
-  }, []);
 
   // 🔐 EMAIL LOGIN
   const login = async (email, password) => {
@@ -50,37 +52,39 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // 🟢 GOOGLE LOGIN
-  const googleLogin = async (token) => {
-    try {
-      const { data } = await axios.post(
-        `${NODE_API}/auth/google`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+const googleLogin = async (token) => {
+  try {
+    const { data } = await axios.post(
+      `${NODE_API}/auth/google`,
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
 
-      const { user: userData } = data;
+    const { user: userData } = data;
 
-      sessionStorage.setItem('email', userData.email);
-      sessionStorage.setItem('userId', userData.id);
+    sessionStorage.setItem('email', userData.email);
+    sessionStorage.setItem('userId', userData.id);
+    if (userData.avatar_url) sessionStorage.setItem('avatar', userData.avatar_url);
 
-      setUser({
-        email: userData.email,
-        userId: userData.id,
-      });
+    setUser({
+      email: userData.email,
+      userId: userData.id,
+      avatar: userData.avatar_url || null,
+    });
 
-      return { success: true };
-    } catch (err) {
-      return {
-        success: false,
-        error: err.response?.data?.message || 'Google login failed',
-      };
-    }
-  };
+    return { success: true };
+  } catch (err) {
+    return {
+      success: false,
+      error: err.response?.data?.message || 'Google login failed',
+    };
+  }
+};
+
 
   const register = async (name, email, password) => {
     try {
