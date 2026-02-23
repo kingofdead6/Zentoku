@@ -70,8 +70,7 @@ export default function WatchingPage() {
           timeout: 12000,
         });
 
-        const watchinglist = data.watchinglist ?? [];
-
+        const watchinglist = data.watching ?? [];
         if (watchinglist.length === 0) {
           setMediaItems([]);
           return;

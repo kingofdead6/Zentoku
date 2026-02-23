@@ -333,7 +333,7 @@ export default function CardPopup({ item, isOpen, onClose }) {
               {/* Close Button */}
               <button
                 onClick={onClose}
-                className="absolute top-4 right-4 z-10 text-zinc-400 hover:text-white transition-all bg-zinc-800/80 hover:bg-zinc-700 p-2.5 rounded-full backdrop-blur-sm border border-zinc-700/50 hover:scale-110"
+                className="cursor-pointer absolute top-4 right-4 z-10 text-zinc-400 hover:text-white transition-all bg-zinc-800/80 hover:bg-zinc-700 p-2.5 rounded-full backdrop-blur-sm border border-zinc-700/50 hover:scale-110"
                 aria-label="Close"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -452,7 +452,7 @@ export default function CardPopup({ item, isOpen, onClose }) {
                   disabled={isAddingFav || checkingStatus}
                   whileHover={{ scale: checkingStatus ? 1 : 1.03 }}
                   whileTap={{ scale: checkingStatus ? 1 : 0.97 }}
-                  className={`flex-1 py-3.5 px-6 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 ${
+                  className={`cursor-pointer flex-1 py-3.5 px-6 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 ${
                     checkingStatus
                       ? "bg-zinc-700/50 cursor-wait"
                       : isAddingFav
@@ -500,7 +500,7 @@ export default function CardPopup({ item, isOpen, onClose }) {
                   disabled={isAddingWatch || checkingStatus}
                   whileHover={{ scale: checkingStatus ? 1 : 1.03 }}
                   whileTap={{ scale: checkingStatus ? 1 : 0.97 }}
-                  className={`flex-1 py-3.5 px-6 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 ${
+                  className={`cursor-pointer flex-1 py-3.5 px-6 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 ${
                     checkingStatus
                       ? "bg-zinc-700/50 cursor-wait"
                       : isAddingWatch
@@ -549,7 +549,7 @@ export default function CardPopup({ item, isOpen, onClose }) {
     disabled={isAddingWish || checkingStatus}
     whileHover={{ scale: checkingStatus ? 1 : 1.03 }}
     whileTap={{ scale: checkingStatus ? 1 : 0.97 }}
-    className={`flex-1 py-3.5 px-5 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 ${
+    className={`cursor-pointer flex-1 py-3.5 px-5 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 ${
       checkingStatus
         ? "bg-zinc-700/50 cursor-wait"
         : isAddingWish
@@ -598,15 +598,15 @@ export default function CardPopup({ item, isOpen, onClose }) {
     disabled={isAddingWatching || checkingStatus}
     whileHover={{ scale: checkingStatus ? 1 : 1.03 }}
     whileTap={{ scale: checkingStatus ? 1 : 0.97 }}
-    className={`flex-1 py-3.5 px-5 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 ${
+    className={`cursor-pointer flex-1 py-3.5 px-5 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 ${
       checkingStatus
         ? "bg-zinc-700/50 cursor-wait"
         : isAddingWatching
         ? "bg-cyan-700/50 cursor-wait"
         : isInWatching
-        ? "bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 border-2 border-cyan-400/50"
-        : "bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 active:from-cyan-700 active:to-blue-700"
-    } text-white shadow-lg shadow-cyan-900/40 border border-cyan-500/20`}
+        ? "bg-gradient-to-r from-lime-600 to-green-600 hover:from-lime-500 hover:to-green-500 border-2 border-lime-400/50"
+        : "bg-gradient-to-r from-lime-500 to-green-500 hover:from-lime-400 hover:to-green-400 active:from-lime-700 active:to-green-700"
+    } text-white shadow-lg shadow-cyan-900/40 border border-lime-500/20`}
   >
     {checkingStatus ? (
       <>
