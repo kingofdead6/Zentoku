@@ -161,12 +161,14 @@ export default function Login() {
               )}
             </motion.button>
           </form>
+          {/*
           <button
   onClick={handleGoogleLogin}
   className="w-full py-3 px-6 rounded-xl font-medium text-white bg-red-600 hover:bg-red-500 transition-all"
 >
   Continue with Google
 </button>
+*/}
 
           {/* Divider */}
           <div className="relative my-6">
