@@ -21,6 +21,7 @@ export default function Sidebar({ isOpen, onClose }) {
     { to: '/favorites', label: 'Favorites', icon: '❤️' },
     { to: '/watched', label: 'Watched', icon: '✅' },
     { to: '/wishlist', label: 'Wishlist', icon: '📋' },
+    { to: '/watching', label: 'Watching', icon: '👀' },
   ];
 
   const linkClass = ({ isActive }) =>

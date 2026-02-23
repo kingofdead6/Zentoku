@@ -19,6 +19,7 @@ import { Dialog } from '@capacitor/dialog';
 import { useRef } from 'react';
 import { useEffect } from 'react';
 import WishListPage from './pages/WishListPage';
+import WatchingPage from './pages/WatchingPage';
 
 
 function Layout() {
@@ -107,6 +108,7 @@ function App() {
             <Route path="/favorites" element={<FavoritesPage />} />
             <Route path="/watched" element={<WatchedPage />} />
             <Route path="/wishlist" element={<WishListPage />} />
+            <Route path="/watching" element={<WatchingPage />} />
             <Route path="*" element={<div className="text-center py-40 text-2xl">404</div>} />
           </Route>
         </Routes>
