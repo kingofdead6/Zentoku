@@ -18,8 +18,7 @@ import { App as CapApp } from "@capacitor/app";
 import { Dialog } from '@capacitor/dialog';
 import { useRef } from 'react';
 import { useEffect } from 'react';
-import Footer from "./components/helpers/Footer"
-import AuthCallback from './pages/CallBack';
+import WishListPage from './pages/WishListPage';
 
 
 function Layout() {
@@ -98,7 +97,6 @@ function App() {
           
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/auth/callback" element={<AuthCallback />} />
           <Route element={<Layout />}>
             <Route index element={<AnimePage />} />
             <Route path="/anime" element={<AnimePage />} />
@@ -108,6 +106,7 @@ function App() {
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/favorites" element={<FavoritesPage />} />
             <Route path="/watched" element={<WatchedPage />} />
+            <Route path="/wishlist" element={<WishListPage />} />
             <Route path="*" element={<div className="text-center py-40 text-2xl">404</div>} />
           </Route>
         </Routes>

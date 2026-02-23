@@ -3,38 +3,37 @@ import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
 import Card from '../components/helpers/Card';
 import Loading from '../components/helpers/Loading';
+import CardPopup from '../components/helpers/CardPopup';
 
 import axios from 'axios';
 import { NODE_API } from '../../api';
 
-
+// ────────────────────────────────────────────────
 let lastJikanRequest = 0;
-const JIKAN_DELAY_MS = 350; // safe margin
+const JIKAN_DELAY_MS = 350;
 
 async function rateLimitedFetch(url) {
   const now = Date.now();
   const elapsed = now - lastJikanRequest;
   if (elapsed < JIKAN_DELAY_MS) {
-    await new Promise(resolve => setTimeout(resolve, JIKAN_DELAY_MS - elapsed));
+    await new Promise(r => setTimeout(r, JIKAN_DELAY_MS - elapsed));
   }
   lastJikanRequest = Date.now();
 
   const res = await fetch(url);
-  if (!res.ok) {
-    throw new Error(`HTTP ${res.status} - ${res.statusText}`);
-  }
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
 
 // ────────────────────────────────────────────────
-// Cache (localStorage + in-memory for current session)
+// Shared cache (localStorage + memory)
 const CACHE_KEY = 'media_details_cache_v1';
 let mediaCache = JSON.parse(localStorage.getItem(CACHE_KEY) || '{}');
 
 function getCachedMedia(id, type) {
   const key = `${type}_${id}`;
   const entry = mediaCache[key];
-  if (entry && Date.now() - entry.timestamp < 24 * 60 * 60 * 60 * 1000) { // 24h
+  if (entry && Date.now() - entry.timestamp < 24 * 60 * 60 * 1000) { // 24 hours
     return entry.data;
   }
   return null;
@@ -43,79 +42,76 @@ function getCachedMedia(id, type) {
 function setCachedMedia(id, type, data) {
   const key = `${type}_${id}`;
   mediaCache[key] = { data, timestamp: Date.now() };
-  // Keep cache size reasonable (~200 items)
+  // Simple size limit
   const keys = Object.keys(mediaCache);
-  if (keys.length > 200) {
-    delete mediaCache[keys[0]];
-  }
+  if (keys.length > 200) delete mediaCache[keys[0]];
   localStorage.setItem(CACHE_KEY, JSON.stringify(mediaCache));
 }
 
 // ────────────────────────────────────────────────
-export default function WatchedPage() {
+export default function WishListPage() {
   const { user, isAuthenticated } = useAuth();
   const [mediaItems, setMediaItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedItem, setSelectedItem] = useState(null);
 
   useEffect(() => {
     if (!isAuthenticated || !user?.userId) return;
 
-    const fetchWatched = async () => {
+    const fetchWishList = async () => {
       setLoading(true);
       setError(null);
 
       try {
-        const { data } = await axios.get(`${NODE_API}/list/watched`, {
+        const { data } = await axios.get(`${NODE_API}/list/wishlist`, {
           headers: { 'x-user-id': user.userId },
           timeout: 12000,
         });
 
-        const watched = data.watched ?? [];
+        const wishlist = data.wishlist ?? [];
 
-        if (watched.length === 0) {
+        if (wishlist.length === 0) {
           setMediaItems([]);
           return;
         }
 
         const results = await Promise.allSettled(
-          watched.map(async (item) => {
+          wishlist.map(async (item) => {
             try {
               return await fetchMediaDetails(item.mediaId, item.mediaType);
             } catch (err) {
-              console.warn(`Failed ${item.mediaType}/${item.mediaId}:`, err.message);
+              console.warn(`Failed to fetch ${item.mediaType}/${item.mediaId}:`, err.message);
               return null;
             }
           })
         );
 
-        const successfulItems = results
+        const successful = results
           .filter(r => r.status === 'fulfilled' && r.value !== null)
           .map(r => r.value);
 
-        setMediaItems(successfulItems);
+        setMediaItems(successful);
 
-        if (successfulItems.length < watched.length) {
-          console.warn(`Loaded ${successfulItems.length}/${watched.length} items`);
+        if (successful.length < wishlist.length) {
+          console.warn(`Only loaded ${successful.length}/${wishlist.length} wishlist items`);
         }
       } catch (err) {
-        console.error("Failed to load watched list:", err);
+        console.error("Failed to load wishlist:", err);
         setError(
           err.response?.data?.message ||
-          "Could not load your watched list. Please try again later."
+          "Could not load your wishlist. Please try again."
         );
       } finally {
         setLoading(false);
       }
     };
 
-    fetchWatched();
+    fetchWishList();
   }, [isAuthenticated, user?.userId]);
 
   // ────────────────────────────────────────────────
-  // Main media fetch function with cache & rate limiting
   const fetchMediaDetails = async (mediaId, mediaType) => {
-    // Try cache first
     const cached = getCachedMedia(mediaId, mediaType);
     if (cached) return cached;
 
@@ -123,7 +119,6 @@ export default function WatchedPage() {
 
     try {
       switch (mediaType.toLowerCase()) {
-        // ─── ANIME ───────────────────────────────────────
         case 'anime': {
           const json = await rateLimitedFetch(`https://api.jikan.moe/v4/anime/${mediaId}`);
           const a = json.data;
@@ -147,7 +142,6 @@ export default function WatchedPage() {
           break;
         }
 
-        // ─── MANGA / MANHWA ──────────────────────────────
         case 'manga':
         case 'manhwa': {
           const json = await rateLimitedFetch(`https://api.jikan.moe/v4/manga/${mediaId}`);
@@ -172,7 +166,6 @@ export default function WatchedPage() {
           break;
         }
 
-        // ─── TV SHOW ─────────────────────────────────────
         case 'show':
         case 'tv': {
           const s = await fetch(`https://api.tvmaze.com/shows/${mediaId}`).then(r => {
@@ -194,9 +187,7 @@ export default function WatchedPage() {
           break;
         }
 
-        // ─── BOOK ────────────────────────────────────────
         case 'book': {
-          // mediaId should be like "/works/OL123W"
           const b = await fetch(`https://openlibrary.org${mediaId}.json`).then(r => {
             if (!r.ok) throw new Error('Book not found');
             return r.json();
@@ -224,22 +215,22 @@ export default function WatchedPage() {
           throw new Error(`Unsupported media type: ${mediaType}`);
       }
 
-      // Cache successful result
       if (result) {
         setCachedMedia(mediaId, mediaType, result);
       }
 
       return result;
     } catch (err) {
+      // 404 / not found → skip silently
       if (err.message.includes('404') || err.message.includes('not found')) {
-        return null; // silently skip missing items
+        return null;
       }
-      console.warn(`Media fetch failed (${mediaType}/${mediaId}):`, err.message);
+      console.warn(`Media fetch error (${mediaType}/${mediaId}):`, err.message);
       return null;
     }
   };
 
-  // ─── AniList helpers (unchanged but with basic error safety) ────────
+  // ─── AniList helpers ────────────────────────────────────────
   const fetchAniListEpisodes = async (title) => {
     if (!title) return 0;
     try {
@@ -260,8 +251,7 @@ export default function WatchedPage() {
       });
       const { data } = await res.json();
       const media = data?.Media;
-      // eslint-disable-next-line no-constant-binary-expression
-      return media?.episodes ?? media?.nextAiringEpisode?.episode - 1 ?? 0;
+      return media?.episodes ?? (media?.nextAiringEpisode?.episode - 1) ?? 0;
     } catch {
       return 0;
     }
@@ -291,13 +281,21 @@ export default function WatchedPage() {
     }
   };
 
-  // ─── Render ─────────────────────────────────────────────────────────
+  // ─── UI handlers ────────────────────────────────────────────
+  const handleItemRemoved = (mediaId, mediaType) => {
+    setMediaItems(prev =>
+      prev.filter(item => !(String(item.id) === String(mediaId) && item.type === mediaType))
+    );
+    setSelectedItem(null);
+  };
+
+  // ─── Render ─────────────────────────────────────────────────
   if (!isAuthenticated) {
     return (
       <section className="min-h-screen bg-gradient-to-b from-gray-950 to-gray-900 text-gray-100 flex items-center justify-center">
         <div className="text-center px-6 py-12">
-          <h2 className="text-3xl md:text-4xl font-bold mb-6 text-white">Your Watched List</h2>
-          <p className="text-xl text-gray-300 mb-8">Please log in to view your watched items</p>
+          <h2 className="text-3xl md:text-4xl font-bold mb-6 text-white">Your WishList</h2>
+          <p className="text-xl text-gray-300 mb-8">Please log in to view your wishlist items</p>
           <Link
             to="/login"
             className="inline-block px-8 py-3.5 rounded-xl bg-green-600 hover:bg-green-500 text-white font-semibold shadow-md transition-colors"
@@ -314,7 +312,7 @@ export default function WatchedPage() {
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-950 to-gray-900 text-gray-100 flex items-center justify-center">
-        <div className="text-center text-red-400 text-xl">{error}</div>
+        <div className="text-center text-red-400 text-xl py-12">{error}</div>
       </div>
     );
   }
@@ -323,7 +321,7 @@ export default function WatchedPage() {
     return (
       <section className="min-h-screen bg-gradient-to-b from-gray-950 to-gray-900 text-gray-100 flex items-center justify-center">
         <div className="text-center py-24 text-gray-400 text-lg">
-          You haven't marked anything as watched yet.<br />
+          You haven't added any wishlist items yet.<br />
           <Link to="/" className="text-green-400 hover:underline ml-2">
             Start exploring!
           </Link>
@@ -337,25 +335,34 @@ export default function WatchedPage() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="py-10">
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-center text-white">
-            My Watched List
+            My WishList
           </h1>
           <p className="text-center text-green-400/70 mt-3">
-            Anime · Manga · Shows · Books you've completed
+            Your saved anime · manga · shows · books
           </p>
         </div>
 
         <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 mt-8">
-          {mediaItems.map((item) => (
-            <div key={`${item.type}-${item.id}`} className="cursor-pointer">
-              <Card item={item} />
-            </div>
+          {mediaItems.map(item => (
+            <Card
+              key={`${item.type}-${item.id}`}
+              item={item}
+              onClick={() => setSelectedItem(item)}
+            />
           ))}
         </div>
 
         <p className="text-center text-gray-600 text-sm mt-16">
-          Click any card to view more details
+          Click any card to view details
         </p>
       </div>
+
+      <CardPopup
+        item={selectedItem}
+        isOpen={!!selectedItem}
+        onClose={() => setSelectedItem(null)}
+        onItemRemoved={handleItemRemoved}
+      />
     </section>
   );
 }

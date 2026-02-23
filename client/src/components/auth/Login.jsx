@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { supabase } from '../../utils/supabase';
 
 export default function Login() {
   const { login } = useAuth();
@@ -29,14 +28,6 @@ export default function Login() {
       setError(result.error);
     }
   };
-  const handleGoogleLogin = async () => {
-  await supabase.auth.signInWithOAuth({
-    provider: 'google',
-    options: {
-      redirectTo: 'https://zentoku.vercel.app/auth/callback'
-    }
-  });
-};
 
 
   return (

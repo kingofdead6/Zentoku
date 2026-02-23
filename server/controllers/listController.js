@@ -1,6 +1,10 @@
 import asyncHandler from 'express-async-handler';
 import Watchlist from '../models/Watchlist.js';
+import Favoritelist from '../models/FavoritesList.js';
 import Wishlist from '../models/Wishlist.js';
+import WatchingList from '../models/WatchingList.js';
+
+
 
 const getOrCreateList = async (Model, userId) => {
   let list = await Model.findOne({ user: userId });
@@ -10,16 +14,14 @@ const getOrCreateList = async (Model, userId) => {
   return list;
 };
 
-// Helper to compare mediaIds (handles both strings and numbers)
 const isSameMedia = (item, mediaId, mediaType) => {
   return String(item.mediaId) === String(mediaId) && item.mediaType === mediaType;
 };
 
-// ─────────────────────────────────────────────── 
-//  Wishlist (Favorites)
-// ───────────────────────────────────────────────
 
-export const addToWishlist = asyncHandler(async (req, res) => {
+//Favorite List Controllers
+
+export const addToFavoritelist = asyncHandler(async (req, res) => {
   const { mediaId, mediaType } = req.body;
 
   if (!mediaId || !mediaType) {
@@ -27,55 +29,53 @@ export const addToWishlist = asyncHandler(async (req, res) => {
     throw new Error('mediaId and mediaType are required');
   }
 
-  const wishlist = await getOrCreateList(Wishlist, req.userId);
+  const favoritelist = await getOrCreateList(Favoritelist, req.userId);
 
-  const alreadyExists = wishlist.items.some(item => 
+  const alreadyExists = favoritelist.items.some(item => 
     isSameMedia(item, mediaId, mediaType)
   );
 
   if (alreadyExists) {
     return res.status(200).json({
       success: true,
-      message: 'Already in wishlist',
-      wishlist: wishlist.items,
+      message: 'Already in favoritelist',
+      favoritelist: favoritelist.items,
     });
   }
 
-  wishlist.items.push({ mediaId, mediaType });
-  await wishlist.save();
+  favoritelist.items.push({ mediaId, mediaType });
+  await favoritelist.save();
 
-  res.json({ success: true, wishlist: wishlist.items });
+  res.json({ success: true, favoritelist: favoritelist.items });
 });
 
-export const removeFromWishlist = asyncHandler(async (req, res) => {
+export const removeFromFavoritelist = asyncHandler(async (req, res) => {
   const { mediaId, mediaType } = req.body;
 
-  const wishlist = await Wishlist.findOne({ user: req.userId });
-  if (!wishlist) {
-    return res.json({ success: true, wishlist: [] });
+  const favoritelist = await Favoritelist.findOne({ user: req.userId });
+  if (!favoritelist) {
+    return res.json({ success: true, favoritelist: [] });
   }
 
-  wishlist.items = wishlist.items.filter(item => 
+  favoritelist.items = favoritelist.items.filter(item => 
     !isSameMedia(item, mediaId, mediaType)
   );
 
-  await wishlist.save();
+  await favoritelist.save();
 
-  res.json({ success: true, wishlist: wishlist.items });
+  res.json({ success: true, favoritelist: favoritelist.items });
 });
 
-export const getWishlist = asyncHandler(async (req, res) => {
-  const wishlist = await Wishlist.findOne({ user: req.userId });
+export const getFavoritelist = asyncHandler(async (req, res) => {
+  const favoritelist = await Favoritelist.findOne({ user: req.userId });
   res.json({
     success: true,
-    wishlist: wishlist ? wishlist.items : [],
+    favoritelist: favoritelist ? favoritelist.items : [],
   });
 });
 
-// ─────────────────────────────────────────────── 
-//  Watched / Watchlist
-// ───────────────────────────────────────────────
 
+// Watched List Controllers 
 export const addToWatched = asyncHandler(async (req, res) => {
   const { mediaId, mediaType } = req.body;
 
@@ -126,5 +126,115 @@ export const getWatched = asyncHandler(async (req, res) => {
   res.json({
     success: true,
     watched: watchlist ? watchlist.items : [],
+  });
+});
+
+// WishList Controllers 
+
+export const addToWishlist = asyncHandler(async (req, res) => {
+  const { mediaId, mediaType } = req.body;
+
+  if (!mediaId || !mediaType) {
+    res.status(400);
+    throw new Error('mediaId and mediaType are required');
+  }
+
+  const wishlist = await getOrCreateList(Wishlist, req.userId);
+
+  const alreadyExists = wishlist.items.some(item => 
+    isSameMedia(item, mediaId, mediaType)
+  );
+
+  if (alreadyExists) {
+    return res.status(200).json({
+      success: true,
+      message: 'Already in wishlist',
+      wishlist: wishlist  .items,
+    });
+  }
+
+  wishlist.items.push({ mediaId, mediaType });
+  await wishlist.save();
+
+  res.json({ success: true, wishlist: wishlist.items });
+});
+
+export const removeFromWishlist = asyncHandler(async (req, res) => {
+  const { mediaId, mediaType } = req.body;
+
+  const wishlist = await Wishlist.findOne({ user: req.userId });
+  if (!wishlist) {
+    return res.json({ success: true, wishlist: [] });
+  }
+
+  wishlist.items = wishlist.items.filter(item => 
+    !isSameMedia(item, mediaId, mediaType)
+  );
+
+  await wishlist.save();
+
+  res.json({ success: true, wishlist: wishlist.items });
+});
+
+export const getWishlist = asyncHandler(async (req, res) => {
+  const wishlist = await Wishlist.findOne({ user: req.userId });
+  res.json({
+    success: true,
+    wishlist: wishlist ? wishlist.items : [],
+  });
+});
+
+// Watching Controllers 
+
+export const addToWatchingList = asyncHandler(async (req, res) => {
+  const { mediaId, mediaType } = req.body;
+
+  if (!mediaId || !mediaType) {
+    res.status(400);
+    throw new Error('mediaId and mediaType are required');
+  }
+
+  const watchinglist = await getOrCreateList(WatchingList, req.userId);
+
+  const alreadyExists = watchinglist.items.some(item => 
+    isSameMedia(item, mediaId, mediaType)
+  );
+
+  if (alreadyExists) {
+    return res.status(200).json({
+      success: true,
+      message: 'Already in watching list',
+      watching: watching.items,
+    });
+  }
+
+  watchinglist.items.push({ mediaId, mediaType });
+  await watchinglist.save();
+
+  res.json({ success: true, watching: watchinglist.items });
+});
+
+export const removeFromWatching = asyncHandler(async (req, res) => {
+  const { mediaId, mediaType } = req.body;
+
+  const watchinglist = await WatchingList.findOne({ user: req.userId });
+  if (!watchinglist) {
+    return res.json({ success: true, watching: [] });
+  }
+
+  watchinglist.items = watchinglist.items.filter(item => 
+    !isSameMedia(item, mediaId, mediaType)
+  );
+
+  await watchinglist.save();
+
+  res.json({ success: true, watching: watchinglist.items });
+});
+
+export const getWatching = asyncHandler(async (req, res) => {
+  const watchinglist = await WatchingList.findOne({ user: req.userId });
+  res.json({
+    success: true,
+    watching: watchinglist ? watchinglist.items : [],
   });
 });

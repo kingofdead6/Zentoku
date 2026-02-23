@@ -8,6 +8,48 @@ import CardPopup from '../components/helpers/CardPopup';
 import axios from 'axios';
 import { NODE_API } from '../../api';
 
+// ────────────────────────────────────────────────
+// Rate limiter (shared - safe to import from one file in real project)
+let lastJikanRequest = 0;
+const JIKAN_DELAY_MS = 350;
+
+async function rateLimitedFetch(url) {
+  const now = Date.now();
+  const elapsed = now - lastJikanRequest;
+  if (elapsed < JIKAN_DELAY_MS) {
+    await new Promise(r => setTimeout(r, JIKAN_DELAY_MS - elapsed));
+  }
+  lastJikanRequest = Date.now();
+
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+// ────────────────────────────────────────────────
+// Shared cache (localStorage + memory)
+const CACHE_KEY = 'media_details_cache_v1';
+let mediaCache = JSON.parse(localStorage.getItem(CACHE_KEY) || '{}');
+
+function getCachedMedia(id, type) {
+  const key = `${type}_${id}`;
+  const entry = mediaCache[key];
+  if (entry && Date.now() - entry.timestamp < 24 * 60 * 60 * 60 * 1000) { // 24 hours
+    return entry.data;
+  }
+  return null;
+}
+
+function setCachedMedia(id, type, data) {
+  const key = `${type}_${id}`;
+  mediaCache[key] = { data, timestamp: Date.now() };
+  // Simple size limit
+  const keys = Object.keys(mediaCache);
+  if (keys.length > 200) delete mediaCache[keys[0]];
+  localStorage.setItem(CACHE_KEY, JSON.stringify(mediaCache));
+}
+
+// ────────────────────────────────────────────────
 export default function FavoritesPage() {
   const { user, isAuthenticated } = useAuth();
   const [mediaItems, setMediaItems] = useState([]);
@@ -19,225 +61,237 @@ export default function FavoritesPage() {
     if (!isAuthenticated || !user?.userId) return;
 
     const fetchFavorites = async () => {
-      try {
-        setLoading(true);
+      setLoading(true);
+      setError(null);
 
-        const res = await axios.get(`${NODE_API}/list/wishlist`, {
+      try {
+        const { data } = await axios.get(`${NODE_API}/list/favoritelist`, {
           headers: { 'x-user-id': user.userId },
+          timeout: 12000,
         });
 
-        const wishlist = res.data.wishlist || [];
+        const favoritelist = data.favoritelist ?? [];
 
-        if (wishlist.length === 0) {
+        if (favoritelist.length === 0) {
           setMediaItems([]);
-          setLoading(false);
           return;
         }
 
-        // Fetch full details for each item
-        const fetched = await Promise.all(
-          wishlist.map(async (item) => {
+        const results = await Promise.allSettled(
+          favoritelist.map(async (item) => {
             try {
               return await fetchMediaDetails(item.mediaId, item.mediaType);
             } catch (err) {
-              console.error(`Error fetching ${item.mediaType} ${item.mediaId}:`, err);
+              console.warn(`Failed to fetch ${item.mediaType}/${item.mediaId}:`, err.message);
               return null;
             }
           })
         );
 
-        // Filter out any null results (failed fetches)
-        setMediaItems(fetched.filter(Boolean));
+        const successful = results
+          .filter(r => r.status === 'fulfilled' && r.value !== null)
+          .map(r => r.value);
+
+        setMediaItems(successful);
+
+        if (successful.length < favoritelist.length) {
+          console.warn(`Only loaded ${successful.length}/${favoritelist.length} favorites`);
+        }
       } catch (err) {
-        console.error(err);
-        setError('Failed to load favorites. Please try again later.');
+        console.error("Failed to load favorites:", err);
+        setError(
+          err.response?.data?.message ||
+          "Could not load your favorites. Please try again."
+        );
       } finally {
         setLoading(false);
       }
     };
 
     fetchFavorites();
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, user?.userId]);
 
-  // Helper function to fetch episode count from AniList
-  const fetchAniListEpisodes = async (title) => {
-    const query = `
-      query ($search: String) {
-        Media(search: $search, type: ANIME) {
-          episodes
-          nextAiringEpisode {
-            episode
-          }
-        }
-      }
-    `;
-
-    try {
-      const res = await fetch('https://graphql.anilist.co', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          query,
-          variables: { search: title },
-        }),
-      });
-
-      const json = await res.json();
-      const media = json.data.Media;
-
-      if (media.episodes) return media.episodes;
-      if (media.nextAiringEpisode) return media.nextAiringEpisode.episode - 1;
-
-      return 0;
-    } catch (err) {
-      console.error('AniList fetch error:', err);
-      return 0;
-    }
-  };
-
-  // Helper function to fetch chapter count from AniList
-  const fetchAniListMangaChapters = async (title) => {
-    const query = `
-      query ($search: String) {
-        Media(search: $search, type: MANGA) {
-          chapters
-        }
-      }
-    `;
-
-    try {
-      const res = await fetch('https://graphql.anilist.co', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          query,
-          variables: { search: title },
-        }),
-      });
-
-      const json = await res.json();
-      const media = json.data?.Media;
-
-      if (media?.chapters) return media.chapters;
-
-      return 'Ongoing';
-    } catch (err) {
-      console.error('AniList fetch error:', err);
-      return 'Ongoing';
-    }
-  };
-
-  // Fetch individual media item by ID
+  // ────────────────────────────────────────────────
   const fetchMediaDetails = async (mediaId, mediaType) => {
-    switch (mediaType) {
-      case 'anime': {
-        const res = await fetch(`https://api.jikan.moe/v4/anime/${mediaId}`);
-        if (!res.ok) throw new Error('Anime not found');
-        const json = await res.json();
-        const a = json.data;
+    const cached = getCachedMedia(mediaId, mediaType);
+    if (cached) return cached;
 
-        // Get episode count with AniList fallback
-        let count = a.episodes;
-        if (count === null) {
-          count = await fetchAniListEpisodes(a.title);
+    let result = null;
+
+    try {
+      switch (mediaType.toLowerCase()) {
+        case 'anime': {
+          const json = await rateLimitedFetch(`https://api.jikan.moe/v4/anime/${mediaId}`);
+          const a = json.data;
+
+          let episodes = a.episodes;
+          if (episodes == null) {
+            episodes = await fetchAniListEpisodes(a.title?.english || a.title);
+          }
+
+          result = {
+            id: a.mal_id,
+            title: a.title,
+            image: a.images?.jpg?.large_image_url || '',
+            year: a.year,
+            count: episodes ?? 0,
+            genres: a.genres?.map(g => g.name) || [],
+            type: 'anime',
+            score: a.score ?? 0,
+            description: a.synopsis || '',
+          };
+          break;
         }
 
-        return {
-          id: a.mal_id,
-          title: a.title,
-          image: a.images.jpg.large_image_url,
-          year: a.year,
-          count: count ?? 0,
-          genres: a.genres.map(g => g.name),
-          type: 'anime',
-          score: a.score ?? 0,
-          description: a.synopsis || '',
-        };
-      }
+        case 'manga':
+        case 'manhwa': {
+          const json = await rateLimitedFetch(`https://api.jikan.moe/v4/manga/${mediaId}`);
+          const m = json.data;
 
-      case 'manga':
-      case 'manhwa': {
-        const res = await fetch(`https://api.jikan.moe/v4/manga/${mediaId}`);
-        if (!res.ok) throw new Error('Manga not found');
-        const json = await res.json();
-        const m = json.data;
+          let chapters = m.chapters;
+          if (chapters == null) {
+            chapters = await fetchAniListMangaChapters(m.title?.english || m.title);
+          }
 
-        // Get chapter count with AniList fallback
-        let count = m.chapters;
-        if (count === null) {
-          count = await fetchAniListMangaChapters(m.title);
+          result = {
+            id: m.mal_id,
+            title: m.title,
+            image: m.images?.jpg?.large_image_url || '',
+            year: m.published?.from ? new Date(m.published.from).getFullYear() : null,
+            count: chapters ?? 'Ongoing',
+            genres: m.genres?.map(g => g.name) || [],
+            type: m.type?.toLowerCase() || mediaType,
+            score: m.score ?? 0,
+            description: m.synopsis || '',
+          };
+          break;
         }
 
-        return {
-          id: m.mal_id,
-          title: m.title,
-          image: m.images?.jpg?.large_image_url,
-          year: m.year,
-          count: count ?? 'Ongoing',
-          genres: m.genres.map(g => g.name),
-          type: m.type?.toLowerCase() || mediaType,
-          score: m.score ?? 0,
-          description: m.synopsis || '',
-        };
+        case 'show':
+        case 'tv': {
+          const s = await fetch(`https://api.tvmaze.com/shows/${mediaId}`).then(r => {
+            if (!r.ok) throw new Error('Show not found');
+            return r.json();
+          });
+
+          result = {
+            id: s.id,
+            title: s.name,
+            image: s.image?.original || s.image?.medium || 'https://via.placeholder.com/300x450?text=No+Image',
+            year: s.premiered ? new Date(s.premiered).getFullYear() : null,
+            count: s.runtime || null,
+            genres: s.genres || [],
+            score: s.rating?.average ?? 0,
+            type: 'show',
+            description: s.summary ? s.summary.replace(/<[^>]+>/g, '') : '',
+          };
+          break;
+        }
+
+        case 'book': {
+          const b = await fetch(`https://openlibrary.org${mediaId}.json`).then(r => {
+            if (!r.ok) throw new Error('Book not found');
+            return r.json();
+          });
+
+          const coverId = b.covers?.[0];
+          const image = coverId
+            ? `https://covers.openlibrary.org/b/id/${coverId}-L.jpg`
+            : 'https://via.placeholder.com/300x450?text=No+Cover';
+
+          result = {
+            id: mediaId,
+            title: b.title,
+            image,
+            year: b.first_publish_date ? new Date(b.first_publish_date).getFullYear() : null,
+            genres: b.subjects?.slice(0, 6) || [],
+            type: 'book',
+            author: b.authors?.[0]?.name || 'Unknown Author',
+            description: b.description?.value || b.description || 'No description available',
+          };
+          break;
+        }
+
+        default:
+          throw new Error(`Unsupported media type: ${mediaType}`);
       }
 
-      case 'show': {
-        const res = await fetch(`https://api.tvmaze.com/shows/${mediaId}`);
-        if (!res.ok) throw new Error('Show not found');
-        const s = await res.json();
-        return {
-          id: s.id,
-          title: s.name,
-          image: s.image?.medium || 'https://via.placeholder.com/300x400?text=No+Image',
-          year: s.premiered ? new Date(s.premiered).getFullYear() : null,
-          count: s.runtime || null,
-          genres: s.genres || [],
-          score: s.rating?.average ?? 0,
-          type: 'show',
-          description: s.summary ? s.summary.replace(/<[^>]+>/g, '') : '',
-        };
+      if (result) {
+        setCachedMedia(mediaId, mediaType, result);
       }
 
-      case 'book': {
-        // For books, the mediaId is the OpenLibrary key
-        const res = await fetch(`https://openlibrary.org${mediaId}.json`);
-        if (!res.ok) throw new Error('Book not found');
-        const b = await res.json();
-        
-        // Get cover image if available
-        const coverId = b.covers?.[0];
-        const image = coverId 
-          ? `https://covers.openlibrary.org/b/id/${coverId}-L.jpg`
-          : 'https://via.placeholder.com/300x400?text=No+Cover';
-
-        return {
-          id: mediaId,
-          title: b.title,
-          image,
-          year: b.first_publish_date ? new Date(b.first_publish_date).getFullYear() : null,
-          genres: b.subjects?.slice(0, 5) || [],
-          type: 'book',
-          author: b.authors?.[0]?.name || 'Unknown',
-          description: b.description?.value || b.description || b.subjects?.join(', ') || '',
-        };
+      return result;
+    } catch (err) {
+      // 404 / not found → skip silently
+      if (err.message.includes('404') || err.message.includes('not found')) {
+        return null;
       }
-
-      default:
-        throw new Error(`Unknown media type: ${mediaType}`);
+      console.warn(`Media fetch error (${mediaType}/${mediaId}):`, err.message);
+      return null;
     }
   };
 
-  // Handle item removal - immediately update the UI
+  // ─── AniList helpers ────────────────────────────────────────
+  const fetchAniListEpisodes = async (title) => {
+    if (!title) return 0;
+    try {
+      const res = await fetch('https://graphql.anilist.co', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: `
+            query ($search: String) {
+              Media(search: $search, type: ANIME) {
+                episodes
+                nextAiringEpisode { episode }
+              }
+            }
+          `,
+          variables: { search: title },
+        }),
+      });
+      const { data } = await res.json();
+      const media = data?.Media;
+      // eslint-disable-next-line no-constant-binary-expression
+      return media?.episodes ?? (media?.nextAiringEpisode?.episode - 1) ?? 0;
+    } catch {
+      return 0;
+    }
+  };
+
+  const fetchAniListMangaChapters = async (title) => {
+    if (!title) return 'Ongoing';
+    try {
+      const res = await fetch('https://graphql.anilist.co', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: `
+            query ($search: String) {
+              Media(search: $search, type: MANGA) {
+                chapters
+              }
+            }
+          `,
+          variables: { search: title },
+        }),
+      });
+      const { data } = await res.json();
+      return data?.Media?.chapters ?? 'Ongoing';
+    } catch {
+      return 'Ongoing';
+    }
+  };
+
+  // ─── UI handlers ────────────────────────────────────────────
   const handleItemRemoved = (mediaId, mediaType) => {
-    setMediaItems(prevItems => 
-      prevItems.filter(item => 
-        !(String(item.id) === String(mediaId) && item.type === mediaType)
-      )
+    setMediaItems(prev =>
+      prev.filter(item => !(String(item.id) === String(mediaId) && item.type === mediaType))
     );
-    // Close the popup after removal
     setSelectedItem(null);
   };
 
+  // ─── Render ─────────────────────────────────────────────────
   if (!isAuthenticated) {
     return (
       <section className="min-h-screen bg-gradient-to-b from-gray-950 to-gray-900 text-gray-100 flex items-center justify-center">
@@ -257,50 +311,57 @@ export default function FavoritesPage() {
 
   if (loading) return <Loading />;
 
-  if (error) return <div className="text-center py-24 text-red-400 text-lg sm:text-xl">{error}</div>;
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-gray-950 to-gray-900 text-gray-100 flex items-center justify-center">
+        <div className="text-center text-red-400 text-xl py-12">{error}</div>
+      </div>
+    );
+  }
 
   if (mediaItems.length === 0) {
     return (
-      <section className="min-h-screen bg-gradient-to-b from-gray-950 to-gray-900 text-gray-100">
-        <div className="text-center py-24 text-gray-400 text-lg sm:text-xl">
-          You haven't added any favorites yet.
-          <br className="sm:hidden" />
-          <Link to="/" className="text-green-400 hover:underline ml-2">Start exploring!</Link>
+      <section className="min-h-screen bg-gradient-to-b from-gray-950 to-gray-900 text-gray-100 flex items-center justify-center">
+        <div className="text-center py-24 text-gray-400 text-lg">
+          You haven't added any favorites yet.<br />
+          <Link to="/" className="text-green-400 hover:underline ml-2">
+            Start exploring!
+          </Link>
         </div>
       </section>
     );
   }
 
   return (
-    <section className="min-h-screen bg-gradient-to-b from-gray-950 to-gray-900 text-gray-100 pb-12">
+    <section className="min-h-screen bg-gradient-to-b from-gray-950 to-gray-900 text-gray-100 pb-16">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="py-8 md:py-10">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-center text-white">
+        <div className="py-10">
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-center text-white">
             My Favorites
           </h1>
-          <p className="text-center text-green-400/70 mt-2 text-sm md:text-base">
-            Your saved anime, manga, shows & books
+          <p className="text-center text-green-400/70 mt-3">
+            Your saved anime · manga · shows · books
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 mt-6">
-          {mediaItems.map((item) => (
-            <Card 
-              key={`${item.type}-${item.id}`} 
-              item={item} 
+        <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 mt-8">
+          {mediaItems.map(item => (
+            <Card
+              key={`${item.type}-${item.id}`}
+              item={item}
               onClick={() => setSelectedItem(item)}
             />
           ))}
         </div>
 
-        <p className="text-center text-gray-500 text-sm mt-12">
-          Click any card to see more details
+        <p className="text-center text-gray-600 text-sm mt-16">
+          Click any card to view details
         </p>
       </div>
 
-      <CardPopup 
-        item={selectedItem} 
-        isOpen={!!selectedItem} 
+      <CardPopup
+        item={selectedItem}
+        isOpen={!!selectedItem}
         onClose={() => setSelectedItem(null)}
         onItemRemoved={handleItemRemoved}
       />

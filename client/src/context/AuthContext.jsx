@@ -55,39 +55,7 @@ const login = async (email, password) => {
   }
 };
 
-// 🟢 GOOGLE LOGIN
-const googleLogin = async (token) => {
-  try {
-    const { data } = await axios.post(
-      `${NODE_API}/auth/google`,
-      {},
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
 
-    const { user: userData } = data;
-
-    sessionStorage.setItem('email', userData.email);
-    sessionStorage.setItem('userId', userData.id);
-    if (userData.avatar_url) sessionStorage.setItem('avatar', userData.avatar_url);
-
-    setUser({
-      email: userData.email,
-      userId: userData.id,
-      avatar: userData.avatar_url || null, // <--- ensure this is "avatar"
-    });
-
-    return { success: true };
-  } catch (err) {
-    return {
-      success: false,
-      error: err.response?.data?.message || 'Google login failed',
-    };
-  }
-};
 
 
 
@@ -128,7 +96,6 @@ const googleLogin = async (token) => {
     user,
     loading,
     login,
-    googleLogin, 
     register,
     logout,
     isAuthenticated: !!user,

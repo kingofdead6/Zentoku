@@ -8,15 +8,20 @@ export default function CardPopup({ item, isOpen, onClose }) {
   const { user, isAuthenticated } = useAuth();
   const [isAddingFav, setIsAddingFav] = useState(false);
   const [isAddingWatch, setIsAddingWatch] = useState(false);
+  const [isAddingWish, setIsAddingWish] = useState(false);
+  const [isAddingWatching, setIsAddingWatching] = useState(false);
   const [message, setMessage] = useState(null);
   
   // Track if item is in favorites/watched
   const [isInFavorites, setIsInFavorites] = useState(false);
   const [isInWatched, setIsInWatched] = useState(false);
+  const [isInWishList, setIsInWishList] = useState(false);
+  const [isInWatching, setIsInWatching] = useState(false);
   const [checkingStatus, setCheckingStatus] = useState(true);
 
   if (!item) return null;
 
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {
     if (!isOpen || !isAuthenticated || !user?.userId) {
       setCheckingStatus(false);
@@ -26,20 +31,28 @@ export default function CardPopup({ item, isOpen, onClose }) {
     const checkStatus = async () => {
       setCheckingStatus(true);
       try {
-        const [favRes, watchRes] = await Promise.all([
-          axios.get(`${NODE_API}/list/wishlist`, {
+        const [favRes, watchRes , wishRes, watchingRes] = await Promise.all([
+          axios.get(`${NODE_API}/list/favoritelist`, {
             headers: { "x-user-id": user.userId },
           }),
           axios.get(`${NODE_API}/list/watched`, {
             headers: { "x-user-id": user.userId },
           }),
+          axios.get(`${NODE_API}/list/wishlist`, {
+            headers: { "x-user-id": user.userId },
+          }),
+          axios.get(`${NODE_API}/list/watching`, {
+            headers: { "x-user-id": user.userId },
+          }),
         ]);
 
-        const wishlist = favRes.data.wishlist || [];
+        const favoritelist = favRes.data.favoritelist || [];
         const watched = watchRes.data.watched || [];
+        const wishlist = wishRes.data.wishlist || [];
+        const watching = watchingRes.data.watching || [];
 
         // Check if current item is in the lists
-        const inFav = wishlist.some(
+        const inFav = favoritelist.some(
           (listItem) =>
             String(listItem.mediaId) === String(item.id) &&
             listItem.mediaType === item.type
@@ -50,9 +63,21 @@ export default function CardPopup({ item, isOpen, onClose }) {
             String(listItem.mediaId) === String(item.id) &&
             listItem.mediaType === item.type
         );
-
+        const inWish = wishlist.some(
+          (listItem) =>
+            String(listItem.mediaId) === String(item.id) &&
+            listItem.mediaType === item.type
+        );
+        const inWatching = watching.some(
+          (listItem) =>
+            String(listItem.mediaId) === String(item.id) &&
+            listItem.mediaType === item.type
+        );
+      
         setIsInFavorites(inFav);
         setIsInWatched(inWatch);
+        setIsInWishList(inWish);
+        setIsInWatching(inWatching);
       } catch (error) {
         console.error("Error checking status:", error);
       } finally {
@@ -75,7 +100,7 @@ export default function CardPopup({ item, isOpen, onClose }) {
     try {
       if (isInFavorites) {
         // Remove from favorites
-        await axios.delete(`${NODE_API}/list/wishlist`, {
+        await axios.delete(`${NODE_API}/list/favoritelist`, {
           headers: { "x-user-id": user.userId },
           data: {
             mediaId: item.id,
@@ -87,7 +112,7 @@ export default function CardPopup({ item, isOpen, onClose }) {
       } else {
         // Add to favorites
         const response = await axios.post(
-          `${NODE_API}/list/wishlist`,
+          `${NODE_API}/list/favoritelist`,
           {
             mediaId: item.id,
             mediaType: item.type,
@@ -164,6 +189,110 @@ export default function CardPopup({ item, isOpen, onClose }) {
       setTimeout(() => setMessage(null), 3000);
     }
   };
+
+  const handleToggleWishList = async () => {
+    if (!isAuthenticated) {
+      setMessage({ type: "error", text: "Please login to add to favorites" });
+      return;
+    }
+
+    setIsAddingWish(true);
+    setMessage(null);
+
+    try {
+      if (isInWishList) {
+        // Remove from wishlist
+        await axios.delete(`${NODE_API}/list/wishlist`, {
+          headers: { "x-user-id": user.userId },
+          data: {
+            mediaId: item.id,
+            mediaType: item.type,
+          },
+        });
+        setIsInWishList(false);
+        setMessage({ type: "success", text: "Removed from wishlist" });
+      } else {
+        // Add to wishlist
+        const response = await axios.post(
+          `${NODE_API}/list/wishlist`,
+          {
+            mediaId: item.id,
+            mediaType: item.type,
+          },
+          {
+            headers: { "x-user-id": user.userId },
+          }
+        );
+
+        if (response.data.message?.includes("Already")) {
+          setIsInWishList(true);
+          setMessage({ type: "info", text: "Already in your wishlist!" });
+        } else {
+          setIsInWishList(true);
+          setMessage({ type: "success", text: "Added to wishlist! ❤️" });
+        }
+      }
+    } catch (error) {
+      setMessage({ type: "error", text: "Failed to update wishlist" });
+      console.error(error);
+    } finally {
+      setIsAddingWish(false);
+      setTimeout(() => setMessage(null), 3000);
+    }
+  };
+
+    const handleToggleWatching = async () => {
+    if (!isAuthenticated) {
+      setMessage({ type: "error", text: "Please login to add to watching list" });
+      return;
+    }
+
+    setIsAddingWatching(true);
+    setMessage(null);
+
+    try {
+      if (isInWatching) {
+        // Remove from watching
+        await axios.delete(`${NODE_API}/list/watching`, {
+          headers: { "x-user-id": user.userId },
+          data: {
+            mediaId: item.id,
+            mediaType: item.type,
+          },
+        });
+        setIsInWatching(false);
+        setMessage({ type: "success", text: "Removed from watching list" });
+      } else {
+        // Add to watching list 
+        const response = await axios.post(
+          `${NODE_API}/list/watching`,
+          {
+            mediaId: item.id,
+            mediaType: item.type,
+          },
+          {
+            headers: { "x-user-id": user.userId },
+          }
+        );
+
+        if (response.data.message?.includes("Already")) {
+          setIsInWatching(true);
+          setMessage({ type: "info", text: "Already in your watching list!" });
+        } else {
+          setIsInWatching(true);
+          setMessage({ type: "success", text: "Added to watching list! 🎬" });
+        }
+      }
+    } catch (error) {
+      setMessage({ type: "error", text: "Failed to update watching list" });
+      console.error(error);
+    } finally {
+      setIsAddingWatching(false);
+      setTimeout(() => setMessage(null), 3000);
+    }
+  };
+
+
 
   return (
     <AnimatePresence>
@@ -317,7 +446,7 @@ export default function CardPopup({ item, isOpen, onClose }) {
               </AnimatePresence>
 
               {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row gap-3 mt-6">
+              <div className="grid grid-cols-2 gap-3 mt-6">
                 <motion.button
                   onClick={handleToggleFavorites}
                   disabled={isAddingFav || checkingStatus}
@@ -414,7 +543,106 @@ export default function CardPopup({ item, isOpen, onClose }) {
                     </>
                   )}
                 </motion.button>
+                
+  <motion.button
+    onClick={handleToggleWishList}
+    disabled={isAddingWish || checkingStatus}
+    whileHover={{ scale: checkingStatus ? 1 : 1.03 }}
+    whileTap={{ scale: checkingStatus ? 1 : 0.97 }}
+    className={`flex-1 py-3.5 px-5 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 ${
+      checkingStatus
+        ? "bg-zinc-700/50 cursor-wait"
+        : isAddingWish
+        ? "bg-amber-700/50 cursor-wait"
+        : isInWishList
+        ? "bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 border-2 border-amber-400/50"
+        : "bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 active:from-amber-700 active:to-yellow-700"
+    } text-white shadow-lg shadow-amber-900/40 border border-amber-500/20`}
+  >
+    {checkingStatus ? (
+      <>
+        <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+        </svg>
+        Checking...
+      </>
+    ) : isAddingWish ? (
+      <>
+        <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+        </svg>
+        {isInWishList ? "Removing..." : "Adding..."}
+      </>
+    ) : isInWishList ? (
+      <>
+        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+        In Want to Watch
+      </>
+    ) : (
+      <>
+        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+          <path d="M10 2a8 8 0 100 16 8 8 0 000-16zm1 11a1 1 0 11-2 0V9a1 1 0 112 0v4z" />
+          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm-1-7a1 1 0 112 0v4a1 1 0 11-2 0v-4z" clipRule="evenodd" />
+        </svg>
+        Add to Want to Watch
+      </>
+    )}
+  </motion.button>
+
+  <motion.button
+    onClick={handleToggleWatching}
+    disabled={isAddingWatching || checkingStatus}
+    whileHover={{ scale: checkingStatus ? 1 : 1.03 }}
+    whileTap={{ scale: checkingStatus ? 1 : 0.97 }}
+    className={`flex-1 py-3.5 px-5 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 ${
+      checkingStatus
+        ? "bg-zinc-700/50 cursor-wait"
+        : isAddingWatching
+        ? "bg-cyan-700/50 cursor-wait"
+        : isInWatching
+        ? "bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 border-2 border-cyan-400/50"
+        : "bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 active:from-cyan-700 active:to-blue-700"
+    } text-white shadow-lg shadow-cyan-900/40 border border-cyan-500/20`}
+  >
+    {checkingStatus ? (
+      <>
+        <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+        </svg>
+        Checking...
+      </>
+    ) : isAddingWatching ? (
+      <>
+        <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+        </svg>
+        {isInWatching ? "Removing..." : "Adding..."}
+      </>
+    ) : isInWatching ? (
+      <>
+        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+        </svg>
+        Currently Watching
+      </>
+    ) : (
+      <>
+        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+          <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
+        </svg>
+        Add to Watching
+      </>
+    )}
+  </motion.button>
+                
               </div>
+              
             </div>
           </motion.div>
         </motion.div>

@@ -1,1 +1,1 @@
-export const NODE_API="https://zentoku.onrender.com/api"
+export const NODE_API="http://localhost:5000/api"
