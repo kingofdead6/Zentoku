@@ -11,6 +11,8 @@ export default function ProfilePage() {
   const [stats, setStats] = useState({
     totalWatched: 0,
     totalFavorites: 0,
+    totalWishlist: 0,
+    totalWatching: 0,
     animeCount: 0,
     mangaCount: 0,
     showCount: 0,
@@ -28,13 +30,17 @@ export default function ProfilePage() {
       try {
         setLoading(true);
 
-        const [watchedRes, favRes] = await Promise.all([
-          axios.get(`${NODE_API}/list/watched`, { headers: { 'x-user-id': user.userId } }),
-          axios.get(`${NODE_API}/list/wishlist`, { headers: { 'x-user-id': user.userId } }),
-        ]);
+        const [watchedRes, favRes, wishRes, watchingRes] = await Promise.all([
+  axios.get(`${NODE_API}/list/watched`, { headers: { 'x-user-id': user.userId } }),
+  axios.get(`${NODE_API}/list/favoritelist`, { headers: { 'x-user-id': user.userId } }),
+  axios.get(`${NODE_API}/list/wishlist`, { headers: { 'x-user-id': user.userId } }),
+  axios.get(`${NODE_API}/list/watching`, { headers: { 'x-user-id': user.userId } }),
+]);
 
         const watchedItems = watchedRes.data.watched || [];
-        const favItems = favRes.data.wishlist || [];
+        const favItems = favRes.data.favoritelist || [];
+        const wishItems = wishRes.data.wishlist || [];
+        const watchingItems = watchingRes.data.watching || [];
 
         // Fetch full details for watched items to get accurate counts
         const watchedDetails = await Promise.all(
@@ -74,6 +80,8 @@ export default function ProfilePage() {
         setStats({
           totalWatched: watchedItems.length,
           totalFavorites: favItems.length,
+          totalWishlist: wishItems.length,
+          totalWatching: watchingItems.length,
           animeCount: anime,
           mangaCount: manga,
           showCount: show,
@@ -330,6 +338,40 @@ export default function ProfilePage() {
             <div className="text-5xl font-bold text-white mb-2">{stats.totalFavorites}</div>
             <p className="text-zinc-500 text-sm">Saved for later</p>
           </motion.div>
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.1 }}
+            className="bg-gradient-to-br from-zinc-900 to-zinc-800 rounded-2xl p-8 border border-zinc-700/50 shadow-xl hover:scale-105 transition-transform"
+          >
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-900/50">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+              </div>
+              <h3 className="text-cyan-400 text-lg font-semibold">Watching</h3>
+            </div>
+            <div className="text-5xl font-bold text-white mb-2">{stats.totalWatching}</div>
+          </motion.div>
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.1 }}
+            className="bg-gradient-to-br from-zinc-900 to-zinc-800 rounded-2xl p-8 border border-zinc-700/50 shadow-xl hover:scale-105 transition-transform"
+          >
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-900/50">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+              </div>
+              <h3 className="text-cyan-400 text-lg font-semibold">Wish List</h3>
+            </div>
+            <div className="text-5xl font-bold text-white mb-2">{stats.totalWishlist}</div>
+          </motion.div>
 
           {/* Total Units */}
           <motion.div 
@@ -396,6 +438,25 @@ export default function ProfilePage() {
             </svg>
             View Favorites
           </Link>
+          <Link 
+            to="/wishlist" 
+            className="group px-8 py-4 bg-blue-800 hover:bg-blue-700 border-2 border-blue-700 hover:border-blue-600 text-white font-semibold rounded-xl transition-all hover:scale-105 text-center flex items-center justify-center gap-2"
+          >
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+            </svg>
+            View Wish Lish
+          </Link>
+          <Link 
+            to="/watching" 
+            className="group px-8 py-4 bg-red-800 hover:bg-red-700 border-2 border-red-700 hover:border-red-600 text-white font-semibold rounded-xl transition-all hover:scale-105 text-center flex items-center justify-center gap-2"
+          >
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+            </svg>
+            View Watching
+          </Link>
+
         </motion.div>
       </div>
     </section>
