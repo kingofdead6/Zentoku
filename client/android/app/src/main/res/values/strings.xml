@@ -1,7 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="app_name">zentoku</string>
-    <string name="title_activity_main">zentoku</string>
-    <string name="package_name">com.zentoku.zentoku</string>
-    <string name="custom_url_scheme">com.zentoku.zentoku</string>
-</resources>
