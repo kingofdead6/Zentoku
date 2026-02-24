@@ -50,7 +50,7 @@ export default function AnimePage() {
 
   return (
     <section className="min-h-screen text-gray-100 pb-12">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-full px-4 sm:px-6 lg:px-8">
         {/* Header + Search */}
         <div className="py-8 md:py-10">
           <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-5 mb-8">
@@ -91,7 +91,7 @@ export default function AnimePage() {
             </div>
           ) : (
             <div className="
-              grid grid-cols-2 gap-4 sm:grid-cols-2 sm:gap-5 
+              grid grid-cols-3 gap-2 sm:grid-cols-2 sm:gap-5 
               md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6
             ">
               {filtered.map((item) => (

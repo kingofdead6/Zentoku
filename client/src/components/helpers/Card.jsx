@@ -41,7 +41,7 @@ export default function Card({ item }) {
           {/* SCORE BADGE */}
           {item.score > 0 && (
             <motion.div
-              className="absolute top-3 right-3 bg-gradient-to-br from-emerald-500 to-green-600 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg backdrop-blur-sm"
+              className="absolute bottom-3 right-3 bg-gradient-to-br from-emerald-500 to-green-600 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg backdrop-blur-sm"
               initial={{ scale: 0, rotate: -180 }}
               animate={{ scale: 1, rotate: 0 }}
               transition={{ type: "spring", stiffness: 200, damping: 15 }}
@@ -58,7 +58,7 @@ export default function Card({ item }) {
 
         {/* INFO SECTION */}
         <div className="p-4 ">
-          <h3 className="font-bold text-base text-white line-clamp-2 mb-2 group-hover:text-green-400 transition-colors duration-300">
+          <h3 className="font-semibold text-base text-gray-400 line-clamp-2 mb-2 group-hover:text-green-400 transition-colors duration-300">
             {item.title}
           </h3>
 <div className="flex flex-wrap items-center gap-2 text-zinc-400 text-xs">
