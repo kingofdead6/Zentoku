@@ -20,9 +20,12 @@ import { useRef } from 'react';
 import { useEffect } from 'react';
 import WishListPage from './pages/WishListPage';
 import WatchingPage from './pages/WatchingPage';
-
+import { StatusBar } from '@capacitor/status-bar';
 
 function Layout() {
+  useEffect(() => {
+    StatusBar.setOverlaysWebView({ overlay: true });
+  }, []);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
