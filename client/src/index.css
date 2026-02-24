@@ -34,3 +34,8 @@ body {
   scrollbar-width: thin;
   scrollbar-color: #4ade80 #1f1f1f;
 }
+
+.safe-top {
+  padding-top: constant(safe-area-inset-top);
+  padding-top: env(safe-area-inset-top);
+}

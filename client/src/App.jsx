@@ -26,7 +26,7 @@ function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="min-h-screen  text-zinc-100">
+    <div className="min-h-screen  text-zinc-100 safe-top">
       <Header onMenuClick={() => setSidebarOpen(true)} />
       
       <div className="flex">
