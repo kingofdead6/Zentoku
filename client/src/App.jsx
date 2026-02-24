@@ -34,7 +34,6 @@ function Layout() {
           isOpen={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
         />
-  <FloatingAnimeCharacter />
         <main className="flex-1 lg:ml-64">
           <div className="h-4" />
           <div className="px-6 md:px-10 py-10 max-w-screen-2xl mx-auto">
